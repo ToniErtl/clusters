@@ -1,0 +1,1735 @@
+---
+title: "Clustering - New Version"
+author: "Antal Ertl"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+
+
+knitr::opts_chunk$set(echo = FALSE) # not include the code
+
+library(tidyverse)
+#library(tidymodels)
+library(ggplot2)
+library(ggthemes)
+
+library(rgl) # 3 dimensional plots
+library(factoextra)
+library(crosstable) # crosstable function
+
+
+# Clustering methods:
+library(cluster)
+
+# For random forest modeling and visualization:
+library(rpart)
+library(partykit)
+library(party)
+
+# Additional packages for html output:
+
+library(knitr)
+library(kableExtra)
+
+# -----------------------------# 
+
+
+
+# Functions used: 
+
+corrplot2 <- function(data,
+                      method = "pearson",
+                      sig.level = 0.05,
+                      order = "original",
+                      diag = FALSE,
+                      type = "upper",
+                      tl.srt = 90,
+                      number.font = 1,
+                      number.cex = 1,
+                      mar = c(0, 0, 0, 0)) {
+  library(corrplot)
+  data_incomplete <- data
+  data <- data[complete.cases(data), ]
+  mat <- cor(data, method = method)
+  cor.mtest <- function(mat, method) {
+    mat <- as.matrix(mat)
+    n <- ncol(mat)
+    p.mat <- matrix(NA, n, n)
+    diag(p.mat) <- 0
+    for (i in 1:(n - 1)) {
+      for (j in (i + 1):n) {
+        tmp <- cor.test(mat[, i], mat[, j], method = method)
+        p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
+      }
+    }
+    colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
+    p.mat
+  }
+  p.mat <- cor.mtest(data, method = method)
+  col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+  corrplot(mat,
+    method = "color", col = col(200), number.font = number.font,
+    mar = mar, number.cex = number.cex,
+    type = type, order = order,
+    addCoef.col = "black", # add correlation coefficient
+    tl.col = "black", tl.srt = tl.srt, # rotation of text labels
+    # combine with significance level
+    p.mat = p.mat, sig.level = sig.level, insig = "blank",
+    # hide correlation coefficiens on the diagonal
+    diag = diag
+  )
+}
+
+```
+
+```{r load data}
+data <- read.csv(".//Data in brief//Horn-Kiss-Lenard2021.csv")
+```
+
+<!-- demeanelni osztályonként az összes score-t: -->
+
+<!-- - classid-nként megnézni az átlagot és ahhoz képest mennyi standard eloszlásra van az adott ember adott scoreból -->
+
+<!-- ezekre a deamenelt scoreokra futtatni az egészet -->
+
+<!-- osztály átlag hisztogramok az egyes nem demeanelt változókra. -->
+
+<!-- Április 20-21 -->
+
+---------------------------------------------
+
+
+```{r data preparation}
+
+data_cleaned <- data %>%  mutate(STournamentChoosed =replace_na(STournamentChoosed,0)) %>%
+        mutate(STournamentChoosed_comp =STournamentChoosed* comp) %>%
+                     dplyr::select(studid,
+                                   classid,
+                                   delta,
+                                   beta ,# time inconsistency
+                                   dictator, #altruism
+                                   dictator_schoolmate, #altruism
+                                   risk, # risk
+                                   publicgood, # cooperativeness
+                                   trust, # trust
+                                   trust_return,
+                                   comp) %>%  #trust
+  drop_na() 
+
+
+data_scaled <- data_cleaned %>%  dplyr::select(-studid,-classid, -comp) %>% 
+  scale()
+data_scaled <- as.data.frame(data_scaled)
+```
+
+
+---------
+Descriptives:
+
+```{r}
+data_nomiss <- data %>% 
+          dplyr::select(math,read,delta,
+                        beta,
+                        dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return, comp) %>% 
+  drop_na()
+
+stargazer::stargazer(data_nomiss,summary = TRUE, mean.sd = TRUE, median = TRUE,
+          iqr = TRUE)
+```
+
+
+---------
+
+
+### Defining the number of Principal Components to look at 
+
+
+Using the demeaned data, the factor choice is no longer clear at factor = 4 but it is good enough
+
+
+
+
+```{r, warning=FALSE,dpi=300, fig.width=10, fig.height=4}
+
+pr.out <- data_scaled %>% prcomp(., scale = TRUE)
+
+
+scree_plot_data <- data_scaled %>% psych::principal( nfactors = 4, rotate= "varimax")
+
+pve <- 100 * pr.out$sdev^2 / sum(pr.out$sdev ^2)
+par(mfrow = c(1, 2))
+plot(pve , type = "o", ylab = "PVE", main = "Scree-plot for Principal Component Analysis", frame = FALSE, xlab = "Principal Component", col = "blue")
+```
+
+
+Alternatively, look at the number of Principal Components to attaint using Parallel Analysis.
+
+Parallel Analysis: specify how many components to retain using simulation
+
+Here, we get the critical values for each component. If the eigenvalues from the PCA are greater than the value at 0.95 confint, we can retain given component.
+
+We have two rules:
+1) Kaiser's rule: Eigenvalue has to be >1 (satisfied up to 4 factors, with the 4th being barely above)
+2) Eigenvalues being greater than the estimates gathered from Parallel Analysis (Horn, 1965)
+
+```{r, warning=FALSE}
+
+
+library(hornpa)
+hornpa(k = 4, #test for number of factors
+       size = nrow(data_scaled), # size of dataset
+       reps = 500, # number of simulations
+       seed = 1234) #set seed
+
+
+scree_plot_data <- data_scaled  %>% psych::principal( nfactors = 4, rotate= "varimax")
+scree_plot_data
+
+
+
+rm(scree_plot_data,pve)
+```
+
+
+Overall, no clear indication on the number of components; still, in order to make it comparable with the non-demeaned data, I calculate with 4 factors in the PCA.
+
+
+#### 4 Factor PCA 
+
+
+
+
+
+```{r warning=FALSE,dpi=300, fig.width=10, fig.height=4}
+
+pca_varimax<- data_scaled %>%  psych::principal( nfactors = 4, rotate= "varimax")
+
+
+pca_varimax$loadings
+
+
+pca_data <- data_scaled
+pca_data$studid <- data_cleaned$studid
+pca_data$comp <- data_cleaned$comp
+
+pca_data$pca_socpref_interact <- pca_varimax$scores[,"RC1"]
+pca_data$pca_timepref <- pca_varimax$scores[,"RC2"]
+pca_data$pca_socpref_nointeract <- pca_varimax$scores[,"RC3"]
+pca_data$pca_riskpref <- pca_varimax$scores[,"RC4"]
+
+
+data.frame(head(pca_varimax$loadings, n=nrow(pca_varimax$loadings))) %>%
+  mutate(variable = rownames(.)) %>%
+  gather(component,loading,-variable) %>%
+  mutate(component = case_when(component == "RC3" ~ "Social Pref. without interactions",
+                               component == "RC2" ~ "Time Preference",
+                               component == "RC4" ~ "Risk, risky choice",
+                               component == "RC1" ~ "Social Pref. with interactions"
+                               )) %>%
+  ggplot(aes(loading,variable))+
+  geom_col(fill = "midnightblue")+
+  facet_wrap(~component,nrow=1)+
+    labs(color = NULL,
+       title = "Factor Loadings for each Component",
+      subtitle ="With 4 factors")+
+  ylab(NULL)+
+  xlab(NULL)+
+  theme_minimal()
+```
+
+--------------------
+
+
+```{r add variables to PCA}
+
+
+
+# add variables from the original data
+
+additional_variables <- data %>%
+select(studid,
+        schoolid,
+         academic,
+         FinalProfitRounded,
+         math,
+         read,
+         female,
+         male,
+         age,
+         gpa_i,
+         grade_math,
+         grade_hun,
+         grade_lit)
+
+
+
+data_analysis <- left_join(pca_data,additional_variables, by ="studid")
+
+
+```
+
+
+```{r}
+
+plot3d(
+  x=data_analysis$pca_socpref_interact, y=data_analysis$pca_timepref, z=data_analysis$pca_riskpref,
+  #col = data$color,
+  #type = 's',
+  radius = .1,
+  xlab="Soc. Pref. Interact.", ylab="Time Pref.", zlab="Soc. Pref. No-Interact.")
+
+```
+
+
+
+
+
+
+------------------------------------------
+
+
+
+## Random Forest
+
+
+Az ÖSSZES további Random Forest illesztésben a "math" változóra illesztettem a fákat. Lehet még olyat is illeszteni, ahol pl. top 15% percentilisre lövünk.
+
+Random forest math változóra; PCA változók nélkül
+
+
+
+```{r warning=FALSE,dpi=300, fig.width=14, fig.height=4}
+
+set.seed(425643)
+
+rf_rpart <- rpart::rpart(math~delta+
+                           beta+
+                           dictator+dictator_schoolmate+risk+publicgood+
+                           trust+trust_return+
+                           comp, data=data_analysis)
+
+
+# to plot this, we need to make this compatible with the "party" package
+
+
+rf_rpart2 <- partykit::as.party(rf_rpart)
+plot(rf_rpart2)
+```
+
+Összehasonlítás a nyers változókkal:
+
+```{r warning=FALSE,dpi=300, fig.width=14, fig.height=4}
+
+set.seed(4286)
+
+
+data_nomiss <- data %>% 
+          dplyr::select(math,delta,delta_now,
+                        beta,
+                        dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return, comp) %>% 
+  drop_na()
+
+rf_rpart <- rpart::rpart(math~delta+beta+
+                           dictator+dictator_schoolmate+risk+publicgood+
+                           trust+trust_return+
+                           comp, data=data_nomiss)
+
+
+# to plot this, we need to make this compatible with the "party" package
+
+
+rf_rpart2 <- partykit::as.party(rf_rpart)
+plot(rf_rpart2)
+
+
+rm(data_nomiss)
+```
+
+#### Az összehasonlítás eredménye:
+
+<!-- A demeanelt verzió sokkal jobban szétszedi a "klasztereket". mintha a nyers változókkal számolunk (köszönhetően annak, hogy kvázi normalizáltuk az adatot) -->
+
+<!-- Legjobb teljesítményűek (azaz ahol a klaszterek átlaga 1 körül van): -->
+
+<!-- Demeanelt esetben: (összesen kb. 100 megfigyelés) -->
+<!-- - Node 7 : <0.5 publicgood_diff és 0.28<=dictator_diff<0.66 (csak ez a két változó érdekes ennél) -->
+<!-- - Node 24 : >=0.526 public_good <1.12 ; trust_diff <0.5 és delta_diff >=0.66 -->
+<!-- - Node 27 : >=0.526 public_good <1.12 ; trust_diff >=0.5 (itt válik el az előzőtől) és trust_diff <1.123 -->
+
+
+<!-- Sima változók esetében: (összesen kb. 130 megfigyelés) -->
+<!-- - Node 14 : delta >=0.78; publicgood <98.65 és dictator < 1.5 -->
+<!-- - Node 18 : delta >=0.78; publicgood >=98.65; trust <75 ; dictator_schoolmate <3.75 -->
+<!-- - Node 19 : delta >=0.78; publicgood >=98.65; trust >=75 (ez a három közül a legnagyobb) -->
+
+<!-- Tehát a publig good és a trust mindig nagyon fontos, nyers adatoknál pedig a delta. -->
+<!-- Fontos még a dictator game is -->
+
+
+
+
+## Klasszifikáció a legjobb 20% matekosra
+
+
+Ha a legjobb 20% matekosra futtatok klasszifikációt, akkor a legfontosabbak a klasszifikáció szempontjából a következők:
+
+- trust
+- delta
+- trust_return
+- fontos még a dictator_schoolmate (de csak 33 eset klasszifikációjában ebben a futtatásban)
+
+
+```{r warning=FALSE,dpi=300, fig.width=14, fig.height=4}
+
+set.seed(4286)
+
+
+data_nomiss <- data %>% 
+          dplyr::select(math,read,delta,
+                        beta,
+                        dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return, comp) %>% 
+  drop_na() %>% 
+  mutate(math_good = case_when(math >= quantile(math, probs = c(0.8)) ~1,
+                                TRUE~0)) 
+
+rf_rpart <- rpart::rpart(math_good~delta+
+                           beta+
+                         +dictator+dictator_schoolmate+risk+publicgood+
+                           trust+trust_return+
+                           comp, data=data_nomiss)
+
+
+# to plot this, we need to make this compatible with the "party" package
+
+
+rf_rpart2 <- partykit::as.party(rf_rpart)
+plot(rf_rpart2)
+
+
+
+```
+
+
+
+
+```{r}
+data_nomiss <- data %>% 
+          dplyr::select(math,read,delta,
+                        beta,
+                        dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return, comp) %>% 
+  drop_na() %>% 
+  mutate(math_good = case_when(math >= quantile(math, probs = c(0.8)) ~1,
+                                TRUE~0),
+         read_good = case_when(read >= quantile(read, probs = c(0.8)) ~1,
+                                TRUE~0)) 
+
+summary(logit_model_math <- glm(math_good~delta+
+                           beta+
+                         +dictator+dictator_schoolmate+risk+publicgood+
+                           trust+trust_return+
+                           comp, data=data_nomiss))
+
+summary(logit_model_read <- glm(read_good~delta+
+                           beta+
+                         +dictator+dictator_schoolmate+risk+publicgood+
+                           trust+trust_return+
+                           comp, data=data_nomiss))
+
+
+data_nomiss_ses <- data %>% 
+          dplyr::select(math,read,delta,
+                        beta,
+                        dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return, comp,
+                        female,pared_d2,pared_d3) %>% 
+  drop_na() %>% 
+  mutate(math_good = case_when(math >= quantile(math, probs = c(0.8)) ~1,
+                                TRUE~0),
+         read_good = case_when(read >= quantile(read, probs = c(0.8)) ~1,
+                                TRUE~0),
+         d_female = case_when(female=="female"~1,
+                              TRUE~0)) 
+
+logit_model_math_ses <- glm(math_good~delta+
+                           beta+
+                         +dictator+dictator_schoolmate+risk+publicgood+
+                           trust+trust_return+
+                           comp+d_female+pared_d2+pared_d3, data=data_nomiss_ses)
+
+logit_model_read_ses <- glm(read_good~delta+
+                           beta+
+                         +dictator+dictator_schoolmate+risk+publicgood+
+                           trust+trust_return+
+                           comp+d_female+pared_d2+pared_d3, data=data_nomiss_ses)
+
+
+```
+
+
+```{r}
+stargazer::stargazer(logit_model_math,logit_model_math_ses,logit_model_read,logit_model_read_ses)
+```
+
+
+------------------
+
+
+# Random forest - read
+
+
+"read változóra megcsinálom az előző elemezést:
+
+
+
+
+```{r warning=FALSE, dpi=300, fig.width=14, fig.height=4}
+
+set.seed(425643)
+
+rf_rpart <- rpart::rpart(read~delta+
+                           beta+
+                           dictator+dictator_schoolmate+risk+publicgood+
+                           trust+trust_return+
+                           comp, data=data_nomiss)
+
+
+# to plot this, we need to make this compatible with the "party" package
+
+
+rf_rpart2 <- partykit::as.party(rf_rpart)
+plot(rf_rpart2)
+
+# rm(data_nomiss)
+```
+
+Összehasonlítás a nyers változókkal:
+
+```{r warning=FALSE,dpi=300, fig.width=14, fig.height=4}
+
+set.seed(4286)
+
+
+data_nomiss <- data %>% 
+          dplyr::select(math,read,delta, 
+                        beta,
+                        dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return, comp) %>% 
+  drop_na()
+
+rf_rpart <- rpart::rpart(read~delta+
+                           beta+
+                           dictator+dictator_schoolmate+risk+publicgood+
+                           trust+trust_return+
+                           comp, data=data_nomiss)
+
+
+# to plot this, we need to make this compatible with the "party" package
+
+
+rf_rpart2 <- partykit::as.party(rf_rpart)
+plot(rf_rpart2)
+
+
+#rm(data_nomiss)
+```
+
+#### Az összehasonlítás eredménye readre
+
+A demeanelt verzió sokkal jobban szétszedi a "klasztereket", csakúgy, mint a math esetében.
+
+Legjobb teljesítményűek (azaz ahol a klaszterek átlaga 1 körül van):
+
+Demeanelt esetben: (összesen kb. 100 megfigyelés, csakúgy, mint math esetében)
+- Node 7  (N=7; nagyon kicsi klaszter) : <-2.235 publicgood_diff (EXTRÉM alacsony), beta_diff <0.43 és delta_diff < 1.324 (egész magas értékűek)
+- Node 21 (N = 97 - ez lényegesen nagyobb klaszter!): 0.43=< publicgood_diff <1.65 és 0.68=<trust_diff<1.27 : EZEK LEHETNEK ESETLEG "RECIPROCITÁS"-CSOPORT?
+
+Sima változók esetében: (összesen kb megint 100 megfigyelés):
+
+- Node 8 (N= 45 ): publicgood és risk (risk tulajdonképpen a beta és delta_diff helyett van az előző fa node 7-éhez képest)
+- Node 13 (N = 61): publicgood >=71.25, trust >= 65 és trust_return <35.06 : EZ IS VALAMI HASONLÓ, RECIPROCITÁS /EGALITÁRIÁNUS CSOPORT?
+
+
+
+
+
+
+# Clustering 
+
+We include competition as well in the clustering. We will use Gower-distance
+
+```{r}
+data_clustering <- data_scaled
+data_clustering$comp <- data_cleaned$comp
+
+
+
+# create dataframe in which we can save the results of clusters
+
+clustered_data <- data_cleaned
+clustered_data$studid <- data_cleaned$studid
+
+# define Gower-distance:
+dist <- daisy(data_clustering, metric = "gower")
+
+```
+
+### Hierarchical clustering
+
+scree-plot:
+
+```{r}
+fviz_nbclust(data_scaled, FUN = hcut, method = "wss", diss = dist)
+```
+
+
+
+silhouette method:
+
+
+```{r}
+set.seed(123)
+
+fviz_nbclust(data_clustering, FUN = hcut, method = "silhouette", diss = dist)
+```
+
+
+### Gap method:
+
+
+The approach can be applied to any clustering method (i.e. K-means clustering, hierarchical clustering).
+
+The gap statistic compares the total intracluster variation for different values of k with their expected values under null reference distribution of the data (i.e. a distribution with no obvious clustering). The reference dataset is generated using Monte Carlo simulations of the sampling process. 
+
+
+```{r}
+# set.seed(23459)
+# 
+# gap_stat <- clusGap(data_clustering, FUN = hcut, nstart = 50, K.max = 15, diss=dist,
+#                     B = 100) #number of monte-carlo bootstraps
+# fviz_gap_stat(gap_stat)
+```
+
+
+
+
+Based on these, it can be either 2 or 3
+
+Using K =2 
+
+```{r}
+
+# defined gower distance in order to get silhouette of the data
+dist <- daisy(data_clustering, metric = "gower")
+cls <- hclust(dist)
+# plot(cls)
+
+
+dendagram <- as.dendrogram(cls)
+
+LAB = rep("", nobs(dendagram))
+dendagram = dendextend::set(dendagram, "labels", LAB)
+
+plot(dendextend::color_branches(dendagram, k = 2), main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
+
+cut_complete <- cutree(cls, k = 2)
+
+clustered_data$hierarch2 <- cut_complete
+
+rm(cls, dendagram, cut_complete)
+```
+
+
+
+Using K =3 
+
+```{r}
+
+# defined gower distance in order to get silhouette of the data
+dist <- daisy(data_clustering, metric = "gower")
+cls <- hclust(dist)
+# plot(cls)
+
+
+dendagram <- as.dendrogram(cls)
+
+LAB = rep("", nobs(dendagram))
+dendagram = dendextend::set(dendagram, "labels", LAB)
+
+plot(dendextend::color_branches(dendagram, k = 3), main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
+
+cut_complete <- cutree(cls, k = 3)
+
+clustered_data$hierarch3 <- cut_complete
+
+rm(cls, dendagram, cut_complete)
+```
+
+----------------
+
+### hclust without competition and with eucledian distance
+
+
+
+```{r}
+data_clustering_num <- data_clustering %>% select(-comp)
+
+
+fviz_nbclust(data_scaled, FUN = hcut, method = "wss")
+
+set.seed(123)
+
+fviz_nbclust(data_clustering, FUN = hcut, method = "silhouette")
+
+
+# defined gower distance in order to get silhouette of the data
+
+cls <- hclust(dist(data_clustering_num), method = "complete" )
+# plot(cls)
+
+
+dendagram <- as.dendrogram(cls)
+
+LAB = rep("", nobs(dendagram))
+dendagram = dendextend::set(dendagram, "labels", LAB)
+
+plot(dendextend::color_branches(dendagram, k = 2), main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
+
+cut_complete <- cutree(cls, k = 2)
+
+clustered_data$hierarch2_nocomp <- cut_complete
+
+rm(cls, dendagram, cut_complete)
+
+cls <- hclust(dist(data_clustering_num), method = "complete" )
+# plot(cls)
+
+
+dendagram <- as.dendrogram(cls)
+
+LAB = rep("", nobs(dendagram))
+dendagram = dendextend::set(dendagram, "labels", LAB)
+
+plot(dendextend::color_branches(dendagram, k = 3), main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
+
+cut_complete <- cutree(cls, k = 3)
+
+clustered_data$hierarch3_nocomp <- cut_complete
+
+rm(cls, dendagram, cut_complete)
+
+
+
+```
+
+
+
+
+
+
+------------------------------
+
+
+### k-medoid (PAM):
+
+
+```{r}
+fviz_nbclust(data_clustering, FUN = pam, method = "silhouette", diss = dist)
+```
+
+
+```{r}
+fviz_nbclust(data_clustering, FUN = pam, method = "wss", diss = dist)
+```
+
+
+```{r}
+# set.seed(123)
+# 
+# gap_stat_medoid <- clusGap(data_clustering, FUN = pam, diss =dist, nstart = 50, K.max = 15, 
+#                     B = 100) #number of monte-carlo bootstraps
+# fviz_gap_stat(gap_stat)
+```
+
+
+
+
+based on these, K = 2 or K = 3 could be appropriate ( K = 3 seems more appropriate based  on silhouette)
+
+We do both of these:
+
+```{r}
+
+set.seed(5678)
+
+PAM_output2 <- cluster::pam(data_clustering, k=2, diss = dist)
+clustered_data$kmedoid2 <- PAM_output2$clustering 
+
+PAM_output3 <- cluster::pam(data_clustering, k=3, diss = dist)
+clustered_data$kmedoid3 <- PAM_output3$clustering 
+
+```
+
+
+
+
+------------------
+
+## k-medoid: without competition, with standard eucledian distance
+
+```{r}
+
+data_clustering_num <- data_clustering %>% select(-comp)
+
+fviz_nbclust(data_clustering_num, FUN = pam, method = "silhouette")
+```
+
+
+```{r}
+fviz_nbclust(data_clustering_num, FUN = pam, method = "wss")
+```
+
+k = 2 , k = 3 (k=4 might also be viable:)
+
+
+```{r}
+set.seed(5678)
+
+PAM_output2 <- cluster::pam(data_clustering, k=2)
+clustered_data$kmedoid2_nocomp <- PAM_output2$clustering 
+
+PAM_output3 <- cluster::pam(data_clustering, k=3)
+clustered_data$kmedoid3_nocomp <- PAM_output3$clustering 
+```
+
+
+
+
+-------------------------------------------
+
+
+
+
+## K-prototype:
+
+fist, validating for the optimal amount of clusters:
+
+```{rm echo = FALSE, include=FALSE}
+library(clustMixType)
+
+data_clustering$comp <- factor(data_clustering$comp)
+
+kpres2 <- clustMixType::kproto(data_clustering, k = 2, method = "gower", nstart = 100, keep.data = TRUE)
+kpres3 <- clustMixType::kproto(data_clustering, k = 3, method = "gower", nstart = 100, keep.data = TRUE)
+kpres4 <- clustMixType::kproto(data_clustering, k = 4, method = "gower", nstart = 100, keep.data = TRUE)
+kpres5 <- clustMixType::kproto(data_clustering, k = 5, method = "gower", nstart = 100, keep.data = TRUE)
+kpres6 <- clustMixType::kproto(data_clustering, k = 6, method = "gower", nstart = 100, keep.data = TRUE)
+kpres7 <- clustMixType::kproto(data_clustering, k = 7, method = "gower", nstart = 100, keep.data = TRUE)
+kpres8 <- clustMixType::kproto(data_clustering, k = 8, method = "gower", nstart = 100, keep.data = TRUE)
+kpres9 <- clustMixType::kproto(data_clustering, k = 9, method = "gower", nstart = 100, keep.data = TRUE)
+kpres10 <- clustMixType::kproto(data_clustering, k = 10, method = "gower", nstart = 100, keep.data = TRUE)
+```
+
+
+```{r}
+silhouette_gower_scores <- c(clustMixType::validation_kproto(method = "silhouette", object = kpres2),
+                             clustMixType::validation_kproto(method = "silhouette", object = kpres3),
+                             clustMixType::validation_kproto(method = "silhouette", object = kpres4),
+                             clustMixType::validation_kproto(method = "silhouette", object = kpres5),
+                             clustMixType::validation_kproto(method = "silhouette", object = kpres6),
+                             clustMixType::validation_kproto(method = "silhouette", object = kpres7),
+                             clustMixType::validation_kproto(method = "silhouette", object = kpres8),
+                             clustMixType::validation_kproto(method = "silhouette", object = kpres9),
+                             clustMixType::validation_kproto(method = "silhouette", object = kpres10))
+
+silhouette_cindex_scores <- c(clustMixType::validation_kproto(method = "cindex", object = kpres2),
+                             clustMixType::validation_kproto(method = "cindex", object = kpres3),
+                             clustMixType::validation_kproto(method = "cindex", object = kpres4),
+                             clustMixType::validation_kproto(method = "cindex", object = kpres5),
+                             clustMixType::validation_kproto(method = "cindex", object = kpres6),
+                             clustMixType::validation_kproto(method = "cindex", object = kpres7),
+                             clustMixType::validation_kproto(method = "cindex", object = kpres8),
+                             clustMixType::validation_kproto(method = "cindex", object = kpres9),
+                             clustMixType::validation_kproto(method = "cindex", object = kpres10))
+
+silhouette_gower_scores
+silhouette_cindex_scores
+
+
+```
+
+
+```{r, include = FALSE, echo = FALSE}
+set.seed(123456)
+
+data_clustering$comp <- factor(data_clustering$comp)
+
+# for k = 2
+
+
+kpres2 <- clustMixType::kproto(data_clustering, k = 2, method = "gower", nstart = 1000, verbose = FALSE)
+clustered_data$kproto2 <- kpres2$cluster
+
+# for k = 3
+
+kpres3 <- clustMixType::kproto(data_clustering, k = 3, method = "gower", nstart = 1000, verbose = FALSE)
+clustered_data$kproto3 <- kpres3$cluster
+
+```
+
+
+
+
+# Graphs - using UMAP 
+
+```{r get umap dimensions}
+
+
+
+library(umap)
+
+#convert all factor data into numeric encoding
+umap_data <- data_clustering 
+umap_data <- data.frame(lapply(data_clustering, as.numeric))
+
+
+# fit umap
+set.seed(12345)
+umap_fit <- umap::umap(umap_data)
+
+# get UMAP dimensions into the dataset
+umap_dimensions <- umap_fit$layout %>%
+                  as.data.frame()%>%
+                  rename(UMAP1="V1",
+                         UMAP2="V2")
+
+clustered_data$UMAP1 <- umap_dimensions$UMAP1
+clustered_data$UMAP2 <- umap_dimensions$UMAP2
+
+```
+
+
+
+## Graphs:
+
+
+```{r}
+
+hc_graph2 <- clustered_data %>% 
+  mutate(hierarch2 = as.factor(hierarch2)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = hierarch2))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "Hierarchical Clustering (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kproto_graph2 <- clustered_data %>% 
+  mutate(kproto2 = as.factor(kproto2)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kproto2))+ 
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype clustering (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kmed_graph2 <- clustered_data %>% 
+  mutate(kmedoid2 = as.factor(kmedoid2)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kmedoid2))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid clustering (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+
+hc_graph3 <- clustered_data %>% 
+  mutate(hierarch3 = as.factor(hierarch3)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = hierarch3))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "Hierarchical Clustering (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kproto_graph3 <- clustered_data %>% 
+  mutate(kproto3 = as.factor(kproto3)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kproto3))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype clustering (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kmed_graph3 <- clustered_data %>% 
+  mutate(kmedoid3 = as.factor(kmedoid3)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kmedoid3))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid clustering (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+
+
+ggpubr::ggarrange(hc_graph2, kproto_graph2, kmed_graph2,
+                  hc_graph3, kproto_graph3, kmed_graph3,
+                  ncol = 3, nrow = 2)
+
+
+```
+
+
+```{r}
+
+hc_graph2_nocomp <- clustered_data %>%
+  mutate(hierarch2_nocomp = as.factor(hierarch2_nocomp)) %>%
+  ggplot(aes(UMAP1,UMAP2, col = hierarch2_nocomp))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "Hierarchical Clustering (nocomp)(k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kproto_graph2 <- clustered_data %>%
+  mutate(kproto2 = as.factor(kproto2)) %>%
+  ggplot(aes(UMAP1,UMAP2, col = kproto2))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype clustering (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kmed_graph2 <- clustered_data %>% 
+  mutate(kmedoid2 = as.factor(kmedoid2)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kmedoid2))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid clustering (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+
+hc_graph3_nocomp <- clustered_data %>% 
+  mutate(hierarch3_nocomp = as.factor(hierarch3_nocomp)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = hierarch3_nocomp))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "Hierarchical Clustering (nocomp)(k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kproto_graph3 <- clustered_data %>% 
+  mutate(kproto3 = as.factor(kproto3)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kproto3))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype clustering (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kmed_graph3 <- clustered_data %>% 
+  mutate(kmedoid3 = as.factor(kmedoid3)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kmedoid3))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid clustering (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kmed_graph2_nocomp <- clustered_data %>% 
+  mutate(kmedoid2_nocomp = as.factor(kmedoid2_nocomp)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kmedoid2_nocomp))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid clustering nocomp (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+
+kmed_graph3_nocomp <- clustered_data %>% 
+  mutate(kmedoid3_nocomp = as.factor(kmedoid3_nocomp)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kmedoid3_nocomp))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid clustering nocomp (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+
+
+
+ggpubr::ggarrange(hc_graph2_nocomp, kmed_graph2_nocomp, kproto_graph2, kmed_graph2,
+                  hc_graph3_nocomp, kmed_graph3_nocomp, kproto_graph3, kmed_graph3,
+                  ncol = 4, nrow = 2)
+
+ggpubr::ggarrange(kmed_graph2_nocomp, kproto_graph2, kmed_graph2,
+                  kmed_graph3_nocomp, kproto_graph3, kmed_graph3,
+                  ncol = 3, nrow = 2)
+
+```
+
+
+
+
+
+```{r}
+
+
+table_one_tech <-clustered_data %>%
+  mutate(kproto3 = as.character(kproto3)) %>% 
+  select(-kproto2, -UMAP1, -UMAP2, -kmedoid2,-kmedoid2_nocomp,-kmedoid3,-kmedoid3_nocomp,-hierarch3,-hierarch2,-hierarch2_nocomp,-hierarch3_nocomp)
+ 
+table_one_tech$math <- data_analysis$math
+
+
+table_one_tech$read <- data_analysis$read
+
+
+table_one <-  arsenal::tableby(kproto3 ~ ., stat= c("mean"), data = table_one_tech)
+table_one
+
+kproto_comp_table <- as.data.frame(table_one <-  summary(arsenal::tableby(kproto3 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL, rownames = FALSE)
+
+kproto_comp_table
+
+stargazer::stargazer(kproto_comp_table, summary = FALSE, rownames = FALSE)
+```
+
+
+
+
+----------------
+
+
+
+
+
+
+#MCLUST clustering : (model based clustering)
+
+
+(for more on that: https://cran.r-project.org/web/packages/mclust/vignettes/mclust.html)
+
+
+
+```{r}
+library(mclust)
+
+set.seed(38912)
+
+
+# check various model variations, which one is the best using the Bayesian Information Criteria (BIC):
+
+BIC <- mclust::mclustBIC(data = raw_clustering)
+
+mclust::plot.mclustBIC(BIC)
+
+```
+
+```{r}
+
+# fit the model based on the best model specification:
+
+summary(mod_mclust <- Mclust(raw_clustering, x = BIC), parameters = TRUE)
+
+mod_mclust <- Mclust(raw_clustering, x = BIC)
+
+mclust::plot.Mclust(mod_mclust, what = "classification")
+```
+
+
+
+
+#### Cross-table of various observations using the two clustering algorithms:
+
+
+##### Complete Hierarchical vs K-means:
+
+```{r}
+table(clustered_data$hierarchical_cluster,clustered_data$kmeans_cluster) %>%
+  kbl(row.names = TRUE,
+      caption  = "Hierarchical clusters (row) vs. k-means cluster (columns)")%>%
+  kable_minimal()
+```
+
+### Complete Hierarchical vs Kmedoid:
+
+```{r}
+table(clustered_data$hierarchical_cluster,clustered_data$kmed_cluster) %>%
+  kbl(row.names = TRUE,
+      caption  = "Hierarchical clusters (row) vs. k-medoid cluster (columns)")%>%
+  kable_minimal()
+```
+
+
+### Complete Hierarchical vs Kmedoid:
+
+```{r}
+table(clustered_data$hierarchical_cluster,clustered_data$kmed_cluster3) %>%
+  kbl(row.names = TRUE,
+      caption  = "Hierarchical clusters (row) vs. k-medoid cluster (columns)")%>%
+  kable_minimal()
+```
+
+
+
+##### Complete Hierarchical vs McQuitty Hierarchical:
+
+
+```{r}
+table(clustered_data$hierarchical_cluster,clustered_data$hierarchical_mcquitty_cluster) %>%
+  kbl() %>% 
+  kable_minimal()
+```
+
+
+##### McQuitty Hierarchical vs K-means:
+
+```{r}
+table(clustered_data$hierarchical_mcquitty_cluster,clustered_data$kmeans_cluster) %>%
+  kbl(row.names = TRUE,
+      caption  = "Hierarchical clusters [McQuitty] (row) vs. k-means cluster (columns)")%>%
+  kable_minimal()
+```
+
+
+
+
+# COMPARISON
+
+
+
+```{r adatok újracsatolása, inlcude = FALSE}
+
+
+nyers_adatok <- data %>%  dplyr::select(studid,
+                                   delta,
+                                                                      beta,
+                                   #pb,
+                                   #beta_0, # time inconsistency
+                                   dictator, #altruism
+                                   dictator_schoolmate, #altruism
+                                   risk, # risk
+                                   publicgood, # cooperativeness
+                                   trust, # trust
+                                   trust_return,
+                                   #gpa_i,
+                                   #female,
+                                   pared_d1,
+                                   pared_d2,
+                                   pared_d3)
+
+
+data_analysis_clean$kmeans_cluster <- clustered_data$kmeans_cluster
+
+data_analysis_clean$kmed_cluster <- clustered_data$kmed_cluster
+
+data_analysis_clean$hierarchical_cluster <- clustered_data$hierarchical_cluster
+
+
+data_analysis_clean$kmed_cluster3 <- clustered_data$kmed_cluster3
+data_analysis_clean$kmeans_cluster3 <- clustered_data$kmeans_cluster3
+
+
+data_analysis_clean <- left_join(data_analysis_clean, nyers_adatok, by = "studid")
+
+
+rm(nyers_adatok)
+
+data_analysis_clean_describe <- data_analysis_clean %>%  dplyr::select(studid,
+                                                                     classid,
+                                                                     schoolid,
+                                   delta,
+                                   
+                                   beta,
+                                   #pb,
+                                   #beta_0, # time inconsistency
+                                   dictator, #altruism
+                                   dictator_schoolmate, #altruism
+                                   risk, # risk
+                                   publicgood, # cooperativeness
+                                   trust, # trust
+                                   trust_return,
+                                   comp,
+                                   pca_socpref_interact,
+                                   pca_timepref,
+                                   pca_socpref_nointeract,
+                                   pca_riskpref,
+                                   math,
+                                   read,
+                                   age,
+                                   kmeans_cluster,
+                                   kmed_cluster,
+                                   kmed_cluster3,
+                                   kmeans_cluster3,
+                                   hierarchical_cluster,
+                                   gpa_i,
+                                   female,
+                                   pared_d1,
+                                   pared_d2,
+                                   pared_d3)
+
+
+
+```
+ 
+
+K-medoid 3D plot:
+
+X axis: pca_socpref_interact
+Y axis: pca_socpref_nointeract
+Z axis : pca_timepref
+
+
+```{r warning = FALSE}
+library(plotly)
+
+pca_socpref_interact <- data_analysis_clean_describe$pca_socpref_interact
+pca_socpref_nointeract <- data_analysis_clean_describe$pca_socpref_nointeract
+pca_timepref <- data_analysis_clean_describe$pca_timepref
+pca_riskpref <-data_analysis_clean_describe$pca_riskpref 
+
+clust <- as.factor(clustered_data$kmed_cluster)
+  
+plot_ly(x=pca_socpref_interact, y=pca_socpref_nointeract, z=pca_timepref, type="scatter3d", mode="markers", color=clust, alpha = 1, size = pca_riskpref) #scatter3d
+```
+
+
+
+```{r warning = FALSE}
+library(plotly)
+
+pca_socpref_interact <- data_analysis_clean_describe$pca_socpref_interact
+pca_socpref_nointeract <- data_analysis_clean_describe$pca_socpref_nointeract
+pca_timepref <- data_analysis_clean_describe$pca_timepref
+pca_riskpref <-data_analysis_clean_describe$pca_riskpref 
+
+clust <- as.factor(clustered_data$kmed_cluster3)
+  
+plot_ly(x=pca_socpref_interact, y=pca_socpref_nointeract, z=pca_timepref, type="scatter3d", mode="markers", color=clust, alpha = 1, size = pca_riskpref) #scatter3d
+```
+
+
+
+
+K-medoid and K-means with k = 3
+
+
+```{r warning=FALSE,dpi=300, fig.width=14, fig.height=4}
+
+# clustered hozzarendelese az osszes valtozohoz
+
+
+table_one_tech <-data_analysis_clean_describe %>%
+  mutate(kmed_cluster3 = as.character(kmed_cluster3)) %>%
+  select(kmed_cluster3,delta,
+         beta,
+         dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return,comp,
+                          pca_socpref_interact,pca_timepref,pca_socpref_nointeract,pca_riskpref,
+                          gpa_i, female, pared_d3, age,
+                          math,read)
+table_one <-  arsenal::tableby(kmed_cluster3 ~ ., stat= c("mean"), data = table_one_tech)
+
+as.data.frame(table_one <-  summary(arsenal::tableby(kmed_cluster3 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL)
+
+write.csv2(table_one, ".//kmed3_cluster_leiro_stat.csv")
+
+
+
+
+#----------------------------------
+
+
+
+
+table_one_tech <-data_analysis_clean_describe %>%
+  mutate(kmeans_cluster3 = as.character(kmeans_cluster3)) %>%
+  select(kmeans_cluster3,delta,
+         beta,
+         dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return,comp,
+                          pca_socpref_interact,pca_timepref,pca_socpref_nointeract,pca_riskpref,
+                          gpa_i, female, pared_d3, age,
+                          math,read)
+table_one <-  arsenal::tableby(kmeans_cluster3 ~ ., stat= c("mean"), data = table_one_tech)
+
+as.data.frame(table_one <-  summary(arsenal::tableby(kmeans_cluster3 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL)
+
+write.csv2(table_one, ".//kmeans3_cluster_leiro_stat.csv")
+
+
+
+
+
+
+
+
+
+
+
+#rm(table_one, table_one_tech)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+### PCA korrelációs tábla:
+
+```{r}
+
+cor_data <- data_analysis_clean_describe %>%  select(pca_riskpref,pca_socpref_nointeract,pca_timepref,pca_socpref_interact,female,math,read,gpa_i,pared_d1,pared_d2,pared_d3) %>% mutate(female =as.integer( case_when (female =="female"~1,
+                                                                                                                                                              TRUE~0)))
+cor(cor_data)
+
+
+write.csv2(cor(cor_data), ".//cor_data.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- ```{r warning=FALSE,dpi=300, fig.width=18, fig.height=20} -->
+
+<!-- # clustered hozzarendelese az osszes valtozohoz -->
+
+<!-- data_analysis_clean$kmeans_cluster <- clustered_data$kmeans_cluster -->
+
+<!-- data_analysis_clean %>%  -->
+<!--   mutate(kmeans_cluster = as.character(kmeans_cluster)) %>% -->
+<!--   select(kmeans_cluster,delta_diff,beta_diff,dictator_diff,dictator_schoolmate_diff,risk_diff,publicgood_diff, -->
+<!--                            trust_diff,trust_return_diff,comp, -->
+<!--                           pca_socpref_interact,pca_timepref,pca_socpref_nointeract,pca_riskpref, -->
+<!--                           math,read) %>%  -->
+<!-- vtable::sumtable(group=c("kmeans_cluster"), group.long = TRUE, add.median = TRUE, simple.kable = TRUE, -->
+<!--                  col.breaks = 7, -->
+<!--                  title = "Summary Statistics for clusters generated by k-means") -->
+<!-- ``` -->
+
+
+# K means
+
+```{r warning=FALSE,dpi=300, fig.width=14, fig.height=4}
+
+# clustered hozzarendelese az osszes valtozohoz
+
+
+table_one_tech <-data_analysis_clean_describe %>%
+  mutate(kmeans_cluster = as.character(kmeans_cluster)) %>%
+  select(kmeans_cluster,delta,
+         beta,
+         dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return,comp,
+                          pca_socpref_interact,pca_timepref,pca_socpref_nointeract,pca_riskpref,
+                          gpa_i, female, pared_d3, age,
+                          math,read)
+table_one <-  arsenal::tableby(kmeans_cluster ~ ., stat= c("mean"), data = table_one_tech)
+
+as.data.frame(table_one <-  summary(arsenal::tableby(kmeans_cluster ~ ., stat= c("mean"), data = table_one_tech)), text = NULL)
+
+write.csv2(table_one, ".//kmeans_cluster_leiro_stat.csv")
+
+#rm(table_one, table_one_tech)
+```
+
+
+# k medoid
+
+
+
+```{r warning=FALSE,dpi=300, fig.width=14, fig.height=4}
+
+# clustered hozzarendelese az osszes valtozohoz
+
+
+table_one_tech <-data_analysis_clean_describe %>%
+  mutate(kmed_cluster = as.character(kmed_cluster)) %>%
+  select(kmed_cluster,delta,
+         beta,
+         dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return,comp,
+                          pca_socpref_interact,pca_timepref,pca_socpref_nointeract,pca_riskpref,
+                          gpa_i, female, pared_d3, age,
+                          math,read)
+table_one <-  arsenal::tableby(kmed_cluster ~ ., stat= c("mean"), data = table_one_tech)
+
+as.data.frame(table_one <-  summary(arsenal::tableby(kmed_cluster ~ ., stat= c("mean"), data = table_one_tech)), text = NULL)
+
+write.csv2(table_one, ".//kmed_cluster_leiro_stat.csv")
+
+
+#rm(table_one, table_one_tech)
+```
+
+
+
+# Hierarchical Clust
+
+
+```{r warning=FALSE,dpi=300, fig.width=14, fig.height=4}
+
+# clustered hozzarendelese az osszes valtozohoz
+
+
+table_two_tech <-data_analysis_clean_describe %>%
+  mutate(hierarchical_cluster = as.character(hierarchical_cluster)) %>%
+  select(hierarchical_cluster,delta,
+         beta,
+         dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return,comp,
+                          pca_socpref_interact,pca_timepref,pca_socpref_nointeract,pca_riskpref,
+                          gpa_i, female, pared_d3, age,
+                          math,read)
+table_two <-  arsenal::tableby(hierarchical_cluster ~ ., stat= c("mean"), data = table_two_tech)
+
+as.data.frame(table_two <-  summary(arsenal::tableby(hierarchical_cluster ~ ., stat= c("mean"), data = table_two_tech)), text = NULL)
+
+write.csv2(table_two, ".//hiearch_cluster_leiro_stat.csv")
+
+
+#rm(table_one, table_one_tech)
+```
+
+
+
+
+
+
+#### ugyanez a táblázat
+
+```{r warning=FALSE,dpi=300, fig.width=14, fig.height=4}
+
+# clustered hozzarendelese az osszes valtozohoz
+
+
+table_two_tech <-data_analysis_clean_describe %>% 
+  mutate(hierarchical_cluster = as.character(hierarchical_cluster)) %>%
+  select(hierarchical_cluster,delta,
+         beta,
+         dictator,dictator_schoolmate,risk,publicgood,
+                           trust,trust_return,comp,
+                          pca_socpref_interact,pca_timepref,pca_socpref_nointeract,pca_riskpref,
+                          gpa_i, female, pared_d3, age,
+                          math,read)
+table_two <-  arsenal::tableby(hierarchical_cluster ~ ., stat= c("mean"), data = table_two_tech) 
+
+kable(summary(table_two))
+
+```
+
+
+
+###### ellenőrző plot, hogy jól másoltam-e be a 
+
+```{r}
+data_analysis_clean_describe %>% 
+  ggplot(aes(x=delta, y = pca_timepref, col = as.factor(kmeans_cluster)))+
+  geom_point()+
+  theme_minimal()
+```
+
+
+
+
+```{r, include = FALSE}
+
+table(data_analysis_clean_describe$kmeans_cluster, data_analysis_clean_describe$schoolid)
+
+```
+
+
+```{r, include = FALSE}
+
+table(data_analysis_clean_describe$kmeans_cluster, data_analysis_clean_describe$classid)
+
+```
+
+
+
+```{r}
+summary(lm(kmeans_cluster~as.factor(schoolid), data = data_analysis_clean_describe))
+```
+
+
+```{r, include = FALSE}
+summary(lm(kmeans_cluster~as.factor(schoolid)+as.factor(classid), data = data_analysis_clean_describe))
+```
+
+
+
+eredmények kiírása csv-be
+
+```{r}
+write.csv2(data_analysis_clean_describe, ".//data_with_pca.csv")
+```
+
+
+
+
+
+
+
+
+<!-- -------- -->
+
+
+<!-- # Clustering -->
+
+<!-- Hierarchical clustering: -->
+
+
+<!-- ```{r warning=FALSE,dpi=300, fig.width=10, fig.height=4} -->
+
+<!-- hc.complete <- hclust(dist(data_analysis_clean_clusteringdata), method = "complete") -->
+<!-- dendagram <- as.dendrogram(hc.complete) -->
+
+<!-- LAB = rep("", nobs(dendagram)) -->
+<!-- dendagram = dendextend::set(dendagram, "labels", LAB) -->
+
+<!-- plot(dendextend::color_branches(dendagram, k = 6), main="Clusters created at height = 6.5", sub ="5 clusters with one outlier", leaflab = "none", horiz = F) -->
+<!-- abline(h = 6.5, col = 'red') -->
+
+
+
+
+
+<!-- # save the clusters: -->
+
+
+
+
+<!-- ``` -->
+
+
+<!-- K-means clustering: -->
+
+<!-- As a first step, I check the optimal number of clusters using the elbow-plot; the results show that 5 is optimal, which is in line with the hierarchical clustering method. -->
+
+<!-- ```{r warning=FALSE,dpi=300, fig.width=10, fig.height=4} -->
+<!-- # elbow method: -->
+<!-- set.seed(123) -->
+
+<!-- # function to compute total within-cluster sum of square -->
+<!-- wss <- function(k) { -->
+<!--   kmeans(data_analysis_clean_clusteringdata, k, nstart = 100 )$tot.withinss -->
+<!-- } -->
+
+<!-- # Compute and plot wss for k = 1 to k = 15 -->
+<!-- k.values <- 1:50 -->
+
+<!-- # extract wss for 2-15 clusters -->
+<!-- wss_values <- map_dbl(k.values, wss) -->
+
+<!-- plot(k.values, wss_values, -->
+<!--        type="b", pch = 19, frame = FALSE, -->
+<!--        xlab="Number of clusters K", -->
+<!--        ylab="Total within-clusters sum of squares") -->
+<!-- ``` -->
+
+<!-- Now knowing that the number of factors is the same, I run the K-means clustering algorithm for 5 clusters: -->
+
+
+<!-- ```{r warning=FALSE,dpi=300, fig.width=10, fig.height=4} -->
+<!-- set.seed(123469) -->
+<!-- k5 <- kmeans(data_analysis_clean_clusteringdata, centers = 5, nstart = 10000) -->
+
+
+<!-- fviz_cluster(k5, geom = "point",  data = data_analysis_clean_clusteringdata) + ggtitle("Clusters with 5 centers and 10,000 simulations")+ -->
+<!--   theme_minimal() -->
+
+
+<!-- # get classes: -->
+
+
+<!-- # hierarchical clustering: -->
+<!-- cut_complete <- cutree(hc.complete, h=6.5) -->
+
+<!-- data_analysis_clean_clusteringdata$hierarchical_cluster <- cut_complete -->
+
+
+<!-- #k-means: -->
+<!-- data_analysis_clean_clusteringdata$kmeans_cluster <- k5$cluster -->
+<!-- ``` -->
+
+
+
+<!-- #### Cross-table of various observations using the two clustering algorithms: -->
+
+<!-- ```{r} -->
+<!-- table(data_analysis_clean_clusteringdata$hierarchical_cluster,data_analysis_clean_clusteringdata$kmeans_cluster) -->
+<!-- ``` -->
+
+
+
+
+
+
+
+
+
+

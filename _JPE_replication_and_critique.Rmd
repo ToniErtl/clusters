@@ -1,0 +1,703 @@
+---
+title: "chowdhurry_replication"
+author: "Antal Ertl"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(foreign)
+
+
+library(tidyverse)
+#library(tidymodels)
+library(ggplot2)
+library(ggthemes)
+
+library(rgl) # 3 dimensional plots
+library(factoextra)
+library(crosstable) # crosstable function
+
+
+# Clustering methods:
+library(cluster)
+
+# For random forest modeling and visualization:
+library(rpart)
+library(partykit)
+library(party)
+
+# Additional packages for html output:
+
+library(knitr)
+library(kableExtra)
+
+```
+
+# Run the code for their article
+
+
+```{r}
+
+for (k in 0:1) {
+	data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta", convert.factors = F)
+	
+	#Data preparation including NAs
+	
+	id <- data.frame(data$slno, data$mid)
+	data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, data$patient_choices_mother, data$binswangerOffspringMean, data$binswanger_father, data$binswanger_mother, data$spitefulOffspringMean, data$spiteful_father, data$spiteful_mother, data$altruisticOffspringMean, data$altruistic_father, data$altruistic_mother, data$egalitarianOffspringMean, data$egalitarian_father, data$egalitarian_mother, data$selfishOffspringMean, data$selfish_father, data$selfish_mother)
+	
+	# Data preparation when removing NAs
+	
+	if (removeNA <- k) {
+		id <- id[complete.cases(data), ]
+		data <- data[complete.cases(data), ] # only pamx works with NAs
+		}
+		
+		data <- scale(data)
+		mydata <- data
+		rm(data)
+		
+		require(fpc)
+		pamx <- pamk(mydata, krange=2:30,criterion="asw", usepam = TRUE,critout = T)
+		
+		# 2 clusters are optimal according to average silhouette width
+		
+		require(cluster)
+		pamx <- pam(mydata, 2)
+		
+		if (!removeNA) {
+			
+			# Save clustering when NAs are not removed
+			
+			save <- data.frame(id, pamx$clustering)
+			save <- setNames(save, c("slno","mid","pam_full"))
+			
+			# Save results
+			
+			# write.dta(save, "~/Data Archive/ConstructedData/cluster_pam_full.dta")
+			# } 
+			# else {
+			# 
+			# # Save clustering when NAs are not removed
+			# 
+			# save <- data.frame(id, pamx$clustering)
+			# save <- setNames(save, c("slno","mid","pam_narm"))
+			# 
+			# # Save results
+			# write.dta(save, "~/Data Archive/ConstructedData/cluster_pam_narm.dta")
+			# }
+		}
+}
+```
+
+
+#recreating for k-medoid:
+
+
+```{r}
+fviz_nbclust(mydata, FUN = pam, method = "silhouette")
+```
+
+
+```{r}
+fviz_nbclust(mydata, FUN = pam, method = "wss")
+```
+
+
+```{r}
+set.seed(123)
+
+gap_stat_medoid <- clusGap(mydata, FUN = pam, nstart = 50, K.max = 15, 
+                    B = 100) #number of monte-carlo bootstraps
+fviz_gap_stat(gap_stat)
+```
+
+
+With Gower-distance:
+
+```{r}
+fviz_nbclust(mydata, FUN = pam, method = "silhouette", diss = dist)
+```
+
+
+```{r}
+fviz_nbclust(mydata, FUN = pam, method = "wss", diss = dist)
+```
+
+
+```{r}
+set.seed(123)
+
+gap_stat_medoid <- clusGap(mydata, FUN = pam, diss = dist, nstart = 50, K.max = 15, 
+                    B = 100) #number of monte-carlo bootstraps
+fviz_gap_stat(gap_stat)
+```
+
+
+
+
+
+
+
+
+
+
+
+siluette: kmeans
+
+```{r}
+fviz_nbclust(mydata, FUN = kmeans, method = "silhouette")
+```
+
+
+
+--------------------------------------
+
+
+# Some other measures
+
+The data is mixture data, we need to use algorithms which are a better fit for it.
+
+First: correct the database so we will not scale the dummy variables
+
+```{r}
+# new_data <- data.frame(data$patient_choicesOffspringMean,
+#                        data$patient_choices_father,
+#                        data$patient_choices_mother,
+#                        data$binswangerOffspringMean,
+#                        data$binswanger_father,
+#                        data$binswanger_mother,
+#                        data$spitefulOffspringMean,
+#                        factor(data$spiteful_father),
+#                        factor(data$spiteful_mother),
+#                        factor(data$altruisticOffspringMean),
+#                        factor(data$altruistic_father),
+#                        factor(data$altruistic_mother),
+#                        factor(data$egalitarianOffspringMean),
+#                        factor(data$egalitarian_father),
+#                        factor(data$egalitarian_mother),
+#                        factor(data$selfishOffspringMean),
+#                        factor(data$selfish_father),
+#                        factor(data$selfish_mother))
+
+data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta", convert.factors = F)
+	
+	#Data preparation including NAs
+	
+	id <- data.frame(data$slno, data$mid)
+	data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, data$patient_choices_mother, data$binswangerOffspringMean, data$binswanger_father, data$binswanger_mother, data$spitefulOffspringMean, data$spiteful_father, data$spiteful_mother, data$altruisticOffspringMean, data$altruistic_father, data$altruistic_mother, data$egalitarianOffspringMean, data$egalitarian_father, data$egalitarian_mother, data$selfishOffspringMean, data$selfish_father, data$selfish_mother)
+
+	
+	
+	
+id <- id[complete.cases(data), ]
+data <- data[complete.cases(data), ] # only pamx works with NAs
+
+
+#continous variables:
+data_cont <-data.frame(data$data.patient_choicesOffspringMean,
+                       data$data.patient_choices_father,
+                       data$data.patient_choices_mother,
+                       data$data.binswangerOffspringMean,
+                       data$data.binswanger_father,
+                       data$data.binswanger_mother,
+                       data$data.spitefulOffspringMean) %>% 
+  scale() 
+
+data_cont <- as.data.frame(data_cont)
+
+data_categorical <- data.frame(factor(data$data.spiteful_father),
+                       factor(data$data.spiteful_mother),
+                       factor(data$data.altruisticOffspringMean),
+                       factor(data$data.altruistic_father),
+                       factor(data$data.altruistic_mother),
+                       factor(data$data.egalitarianOffspringMean),
+                       factor(data$data.egalitarian_father),
+                       factor(data$data.egalitarian_mother),
+                       factor(data$data.selfishOffspringMean),
+                       factor(data$data.selfish_father),
+                       factor(data$data.selfish_mother))
+
+
+data_cont$id <- rownames(data_cont)
+data_categorical$id <- rownames(data_categorical)
+
+new_data <- merge(data_cont, data_categorical, by = "id") %>% select(-id)
+
+
+
+```
+
+
+
+#hierarchical clustering
+
+
+
+Analysis of this clustring method:
+
+### Elbow method for hierarchical clustering
+
+
+```{r}
+# defined gower distance in order to get silhouette of the data
+dist <- daisy(new_data, metric = "gower")
+
+fviz_nbclust(new_data, FUN = hcut, method = "wss", diss = dist)
+```
+
+### Average Silhouette Method:
+
+
+That is, it determines how well each object lies within its cluster. A high average silhouette width indicates a good clustering.
+
+```{r}
+fviz_nbclust(new_data, FUN = hcut, method = "silhouette", diss = dist)
+```
+
+
+In order to use it for mixed data, we need to use Gower-distance (categorical variables are treated different)
+
+
+
+
+
+```{r}
+
+# defined gower distance in order to get silhouette of the data
+dist <- daisy(new_data, metric = "gower")
+cls <- hclust(dist)
+#plot(cls)
+
+
+dendagram <- as.dendrogram(cls)
+
+LAB = rep("", nobs(dendagram))
+dendagram = dendextend::set(dendagram, "labels", LAB)
+
+plot(dendextend::color_branches(dendagram, k = 2), main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
+
+cut_complete <- cutree(cls, k = 2)
+
+
+
+# get clusters to standardized data
+clustered_data_std <- new_data
+clustered_data_std$hierarch2 <- cut_complete
+
+
+# get clusters to non-standardized data:
+clustered_data <- data
+clustered_data$hierarch2 <- cut_complete
+
+
+# rename variable names
+
+clustered_data <- clustered_data %>% rename_with(~sub('factor.data.data.', '', .)) %>% 
+  rename_with(~sub('data.data.', '', .)) %>% 
+  rename_with(~sub('data.', '', .))
+
+
+clustered_data_std <- clustered_data_std %>% rename_with(~sub('factor.data.data.', '', .)) %>% 
+  rename_with(~sub('data.data.', '', .)) %>% 
+  rename_with(~sub('data.', '', .))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+#---------------------------------------#
+#---------------------------------------#
+#---------------------------------------#
+
+
+# k-prototype
+
+
+```{r load k prototype, include = FALSE, echo = FALSE, warning = FALSE}
+library(clustMixType)
+
+```
+
+We use k-prototype clustering with automatically calculated lambda parameters.
+
+First, we plot the elbow method: for each k estimated, we use 1000 initializations to avoid any problems arising from center-initialization bias.
+
+
+```{r, echo = FALSE, include = FALSE, warning = FALSE}
+
+#compute the elbow method
+
+set.seed(123)
+# Compute and plot wss for k = 2 to k = 15.
+k.max <- 15
+
+wss <- sapply(1:k.max, 
+              function(k){kproto(new_data, k, method = "gower", nstart = 100)$tot.withinss})
+```
+
+
+```{r}
+#wss
+plot(1:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="Number of clusters K",
+     ylab="Total within-clusters sum of squares")
+```
+
+
+Using a lot of various methods with simple matching with categorical variables:
+
+```{r}
+# calculate optimal number of cluster
+
+set.seed(12345)
+proto_silh <- clustMixType::validation_kproto(method = "silhouette", data = new_data, k = 2:15, verbose = FALSE) 
+
+proto_gamma <- clustMixType::validation_kproto(method = "gamma", data = new_data, k = 2:15, verbose = FALSE) 
+
+proto_tau <- clustMixType::validation_kproto(method = "tau", data = new_data, k = 2:15, verbose = FALSE) 
+
+proto_cindex <- clustMixType::validation_kproto(method = "cindex", data = new_data, k = 2:15, verbose = FALSE) 
+
+
+proto_silh$index_opt
+proto_gamma$index_opt
+proto_tau$index_opt
+proto_cindex$index_opt
+```
+
+Using silhouette with gower distance:
+
+
+```{r}
+kpres2 <- kproto(new_data, k = 2, method = "gower", nstart = 100, keep.data = TRUE)
+kpres3 <- kproto(new_data, k = 3, method = "gower", nstart = 100, keep.data = TRUE)
+kpres4 <- kproto(new_data, k = 4, method = "gower", nstart = 100, keep.data = TRUE)
+kpres5 <- kproto(new_data, k = 5, method = "gower", nstart = 100, keep.data = TRUE)
+kpres6 <- kproto(new_data, k = 6, method = "gower", nstart = 100, keep.data = TRUE)
+kpres7 <- kproto(new_data, k = 7, method = "gower", nstart = 100, keep.data = TRUE)
+kpres8 <- kproto(new_data, k = 8, method = "gower", nstart = 100, keep.data = TRUE)
+kpres9 <- kproto(new_data, k = 9, method = "gower", nstart = 100, keep.data = TRUE)
+kpres10 <- kproto(new_data, k = 10, method = "gower", nstart = 100, keep.data = TRUE)
+
+silhouette_gower_scores <- c(validation_kproto(method = "silhouette", object = kpres2),
+                             validation_kproto(method = "silhouette", object = kpres3),
+                             validation_kproto(method = "silhouette", object = kpres4),
+                             validation_kproto(method = "silhouette", object = kpres5),
+                             validation_kproto(method = "silhouette", object = kpres6),
+                             validation_kproto(method = "silhouette", object = kpres7),
+                             validation_kproto(method = "silhouette", object = kpres8),
+                             validation_kproto(method = "silhouette", object = kpres9),
+                             validation_kproto(method = "silhouette", object = kpres10))
+
+silhouette_cindex_scores <- c(validation_kproto(method = "cindex", object = kpres2),
+                             validation_kproto(method = "cindex", object = kpres3),
+                             validation_kproto(method = "cindex", object = kpres4),
+                             validation_kproto(method = "cindex", object = kpres5),
+                             validation_kproto(method = "cindex", object = kpres6),
+                             validation_kproto(method = "cindex", object = kpres7),
+                             validation_kproto(method = "cindex", object = kpres8),
+                             validation_kproto(method = "cindex", object = kpres9),
+                             validation_kproto(method = "cindex", object = kpres10))
+
+
+silhouette_gower_scores
+silhouette_cindex_scores
+```
+
+
+
+
+
+```{r, echo = FALSE, include = FALSE}
+kpres2 <- kproto(new_data, k = 2, method = "gower", nstart = 1000, verbose = FALSE)
+kpres2$lambda
+
+
+```
+
+
+
+
+
+# Check how similar the two clustering methods are:
+
+
+```{r}
+
+
+# get clusters to non-standardized data:
+clustered_data$kproto2 <- kpres2$cluster
+clustered_data_std$kproto2 <- kpres2$cluster
+table(clustered_data$hierarch2,clustered_data$kproto2)
+```
+
+
+# Data table summaries
+
+
+
+
+Table with non-standardized variables: 
+
+```{r warning = FALSE}
+
+table_one_tech <-clustered_data %>%
+  mutate(hierarch2 = as.character(hierarch2))
+  
+table_one <-  arsenal::tableby(hierarch2 ~ ., stat= c("mean"), data = table_one_tech)
+
+as.data.frame(table_one <-  summary(arsenal::tableby(hierarch2 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL)
+
+write.csv2(table_one, ".//comment_clustering_plots//.hierarch_clusters_nonstandardized.csv")
+
+
+```
+
+Table with standardized variables: 
+
+```{r warning = FALSE}
+
+table_one_tech <-clustered_data_std %>%
+  mutate(hierarch2 = as.character(hierarch2))
+  
+table_one <-  arsenal::tableby(hierarch2 ~ ., stat= c("mean"), data = table_one_tech)
+
+as.data.frame(table_one <-  summary(arsenal::tableby(hierarch2 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL)
+
+write.csv2(table_one, ".//comment_clustering_plots//.hierarch_clusters_standardized.csv")
+
+
+```
+
+
+
+
+
+
+
+
+
+Kproto with k = 2 : summary Table with standardized variables: 
+
+```{r warning = FALSE}
+
+table_one_tech <-clustered_data_std %>%
+  select(-hierarch2) %>% 
+  mutate(kproto2 = as.character(kproto2))
+  
+table_one <-  arsenal::tableby(kproto2 ~ ., stat= c("mean"), data = table_one_tech)
+
+as.data.frame(table_one <-  summary(arsenal::tableby(kproto2 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL)
+
+write.csv2(table_one, ".//comment_clustering_plots//.kproto_clusters_standardized.csv")
+
+
+```
+
+
+
+Kproto with k = 2 : summary Table with non-standardized variables: 
+
+```{r warning = FALSE}
+
+table_one_tech <-clustered_data %>%
+  select(-hierarch2) %>% 
+  mutate(kproto2 = as.character(kproto2))
+  
+table_one <-  arsenal::tableby(kproto2 ~ ., stat= c("mean"), data = table_one_tech)
+
+as.data.frame(table_one <-  summary(arsenal::tableby(kproto2 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL)
+
+write.csv2(table_one, ".//comment_clustering_plots//.kproto_clusters_nonstandardized.csv")
+
+
+```
+
+
+
+
+
+
+K-proto 4 :
+
+```{r, echo = FALSE, include = FALSE}
+set.seed (456789)
+
+
+kpres4 <- kproto(new_data, k = 4, method = "gower", nstart = 1000, verbose = FALSE)
+kpres4$lambda
+
+
+clustered_data$kproto4 <- kpres4$cluster
+clustered_data_std$kproto4 <- kpres4$cluster
+
+table_one_tech <-clustered_data %>%
+  select(-hierarch2, -kproto2) %>% 
+  mutate(kproto4 = as.character(kproto4))
+  
+table_one <-  arsenal::tableby(kproto4 ~ ., stat= c("mean"), data = table_one_tech)
+
+as.data.frame(table_one <-  summary(arsenal::tableby(kproto4 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL)
+
+```
+
+
+
+
+
+Here, PCA is not appropriate - given we have categorical variables.
+I will use UMAP 
+
+as a control, I'll also use k-medoid
+
+```{r}
+set.seed(5678)
+
+PAM_output <- cluster::pam(new_data, 2)
+
+clustered_data_std$kmedoid <- PAM_output$clustering 
+
+library(umap)
+
+#convert all factor data into numeric encoding
+umap_data <- new_data 
+umap_data <- data.frame(lapply(umap_data, as.numeric))
+
+
+# fit umap
+set.seed(12345)
+umap_fit <- umap::umap(umap_data)
+
+# get UMAP dimensions into the dataset
+umap_dimensions <- umap_fit$layout %>%
+                  as.data.frame()%>%
+                  rename(UMAP1="V1",
+                         UMAP2="V2")
+
+clustered_data_std$UMAP1 <- umap_dimensions$UMAP1
+clustered_data_std$UMAP2 <- umap_dimensions$UMAP2
+
+
+#   MAKE COMPARISON GRAPH:
+
+#graph 1 : hierarchical clusters and umap dimensions:
+
+hc_graph <- clustered_data_std %>% 
+  mutate(hierarch2 = as.factor(hierarch2)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = hierarch2))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "Hierarchical Clustering",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+kproto_graph <- clustered_data_std %>% 
+  mutate(kproto2 = as.factor(kproto2)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kproto2))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype clustering",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+kmed_graph <- clustered_data_std %>% 
+  mutate(kmedoid = as.factor(kmedoid)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kmedoid))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid clustering",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+
+
+ggpubr::ggarrange(hc_graph, kproto_graph, kmed_graph, ncol = 3)
+
+
+
+
+
+kproto2_graph <- clustered_data_std %>% 
+  mutate(kproto2 = as.factor(kproto2)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kproto2))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype clustering",
+       subtitle = "k = 2",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+kproto4_graph <- clustered_data_std %>% 
+  mutate(kproto4 = as.factor(kproto4)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kproto4))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype clustering",
+       subtitle = "k = 4",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+  
+ggpubr::ggarrange(kproto2_graph, kproto4_graph, ncol = 2)
+
+
+
+
+```
+
+
+
+Kproto with k = 2 : summary Table with standardized variables: 
+
+```{r warning = FALSE}
+
+table_one_tech <-clustered_data_std %>%
+  select(-hierarch2) %>% 
+  mutate(kproto2 = as.character(kproto2))
+  
+table_one <-  arsenal::tableby(kproto2 ~ ., stat= c("mean"), data = table_one_tech)
+table_one
+
+df_kproto2_desc<- as.data.frame(table_one <-  summary(arsenal::tableby(kproto2 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL, row.names = FALSE)
+
+write.csv2(as.data.frame(table_one <-  summary(arsenal::tableby(kproto2 ~ ., stat= c("mean"), data = table_one_tech)), text = NULL), ".//comment_clustering_plots//.kproto_clusters_standardized.csv")
+
+
+stargazer::stargazer(df_kproto2_desc, summary = FALSE)
+
+```
+
+
+
+
+
+
+
+
+
+
