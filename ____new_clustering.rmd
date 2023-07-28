@@ -288,6 +288,23 @@ plot3d(
 
 
 
+---------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ------------------------------------------
 
@@ -751,7 +768,7 @@ fviz_nbclust(data_clustering, FUN = pam, method = "wss", diss = dist)
 
 ```{r}
 # set.seed(123)
-# 
+ 
 # gap_stat_medoid <- clusGap(data_clustering, FUN = pam, diss =dist, nstart = 50, K.max = 15, 
 #                     B = 100) #number of monte-carlo bootstraps
 # fviz_gap_stat(gap_stat)
@@ -825,7 +842,7 @@ library(clustMixType)
 
 data_clustering$comp <- factor(data_clustering$comp)
 
-kpres2 <- clustMixType::kproto(data_clustering, k = 2, method = "gower", nstart = 100, keep.data = TRUE)
+kpres2 <- clustMixType::kproto(data_clustering, k = 2, method = "gower", nstart = 100, keep.data = TRUE
 kpres3 <- clustMixType::kproto(data_clustering, k = 3, method = "gower", nstart = 100, keep.data = TRUE)
 kpres4 <- clustMixType::kproto(data_clustering, k = 4, method = "gower", nstart = 100, keep.data = TRUE)
 kpres5 <- clustMixType::kproto(data_clustering, k = 5, method = "gower", nstart = 100, keep.data = TRUE)
@@ -1068,6 +1085,9 @@ kproto_graph3 <- clustered_data %>%
   scale_colour_colorblind()
 
 kmed_graph3 <- clustered_data %>% 
+ mutate(kmedoid3 = case_when(kmedoid3 == 1~3, # technical change to get the same colours for all graphs
+                                     kmedoid3 == 3~1,
+                                     TRUE~2)) %>% 
   mutate(kmedoid3 = as.factor(kmedoid3)) %>% 
   ggplot(aes(UMAP1,UMAP2, col = kmedoid3))+
   geom_point()+
@@ -1093,6 +1113,9 @@ kmed_graph2_nocomp <- clustered_data %>%
 
 
 kmed_graph3_nocomp <- clustered_data %>% 
+  mutate(kmedoid3_nocomp = case_when(kmedoid3_nocomp == 1~2, # technical change to get the same colours for all graphs
+                                     kmedoid3_nocomp == 2~1,
+                                     TRUE~3)) %>% 
   mutate(kmedoid3_nocomp = as.factor(kmedoid3_nocomp)) %>% 
   ggplot(aes(UMAP1,UMAP2, col = kmedoid3_nocomp))+
   geom_point()+
@@ -1148,6 +1171,251 @@ stargazer::stargazer(kproto_comp_table, summary = FALSE, rownames = FALSE)
 
 
 ----------------
+
+
+
+
+---------------------------------------------
+
+PCA and k-medoid combinaion
+
+
+
+```{r}
+# Dani kérésére megcsinálom a PCA-kkal a k-medoidot
+
+# k-prototype nem igazán jó, mert nincsen bináris változónk, csak 4 folytonos
+
+
+PCA_data_for_kmed<- data_analysis %>%  select(pca_riskpref,pca_socpref_nointeract,pca_timepref,pca_socpref_interact)
+
+
+
+fviz_nbclust(PCA_data_for_kmed, FUN = pam, method = "silhouette")
+```
+
+
+```{r}
+fviz_nbclust(PCA_data_for_kmed, FUN = pam, method = "wss")
+```
+
+k = 2 , k = 3 (k=4 might also be viable:)
+
+
+
+```{r}
+set.seed(5678)
+
+PAM_output2_PCA <- cluster::pam(PCA_data_for_kmed, k=2)
+clustered_data$kmedoid2_pca <- PAM_output2_PCA$clustering 
+
+PAM_output3_PCA <- cluster::pam(PCA_data_for_kmed, k=3)
+clustered_data$kmedoid3_pca <- PAM_output3_PCA$clustering 
+
+
+#library(umap)
+
+#convert all factor data into numeric encoding
+#umap_data_pca <- PCA_data_for_kmed
+#umap_data_pca <- data.frame(lapply(PCA_data_for_kmed, as.numeric))
+
+
+# fit umap
+#set.seed(12345)
+#umap_fit_pca <- umap::umap(umap_data_pca)
+
+# get UMAP dimensions into the dataset
+#umap_dimensions <- umap_fit_pca$layout %>%
+#                  as.data.frame()%>%
+#                  rename(UMAP1="V1",
+#                         UMAP2="V2")
+
+#data_analysis$UMAP1 <- umap_dimensions$UMAP1
+#data_analysis$UMAP2 <- umap_dimensions$UMAP2
+
+```
+
+
+graphical representation of PCA using kmedoid
+
+```{r}
+kmed_pca_2 <- clustered_data %>%
+  mutate(kmedoid2_pca= case_when(kmedoid2_pca ==2~1,
+                                 kmedoid2_pca==1~2),
+         kmedoid3_pca= case_when(kmedoid3_pca ==2~1,
+                                 kmedoid3_pca==1~2,
+                                 kmedoid3_pca==3~3)) %>% 
+  mutate(kmedoid2_pca = as.factor(kmedoid2_pca)) %>%
+  ggplot(aes(UMAP1,UMAP2, col = kmedoid2_pca))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid clustering for PCA factors (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+kmed_pca_3 <- clustered_data %>%
+    mutate(kmedoid2_pca= case_when(kmedoid2_pca ==2~1,
+                                 kmedoid2_pca==1~2),
+         kmedoid3_pca= case_when(kmedoid3_pca ==2~1,
+                                 kmedoid3_pca==1~2,
+                                   kmedoid3_pca==3~3)) %>% 
+  mutate(kmedoid3_pca = as.factor(kmedoid3_pca)) %>%
+  ggplot(aes(UMAP1,UMAP2, col = kmedoid3_pca))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid clustering for PCA factors (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_colour_colorblind()
+
+ggpubr::ggarrange(kmed_pca_2, kmed_pca_3, ncol = 2)
+
+ggpubr::ggarrange(kmed_graph2_nocomp, kproto_graph2, kmed_graph2,kmed_pca_2,
+                  kmed_graph3_nocomp, kproto_graph3, kmed_graph3,kmed_pca_3,
+                  ncol = 4, nrow = 2)
+
+```
+
+
+PCA és UMAP korreláció:
+
+
+
+
+
+# Daninak elküldeni az adatokat:
+
+```{r}
+
+clustered_data_to_send <- clustered_data %>% 
+  select(-hierarch4, -hierarch5, -hierarch6, -hierarch7) 
+
+
+clustered_data_to_send$pca_riskpref <- data_analysis$pca_riskpref
+clustered_data_to_send$pca_socpref_nointeract<- data_analysis$pca_socpref_nointeract
+clustered_data_to_send$pca_timepref<- data_analysis$pca_timepref
+clustered_data_to_send$pca_socpref_interact<- data_analysis$pca_socpref_interact
+
+haven::write_dta(clustered_data_to_send, ".//datafiles_tosend//clustering_data_with_pca.dta")
+
+
+```
+
+```{r}
+
+ clustered_data_to_send %>%  select(pca_riskpref,pca_socpref_nointeract,pca_timepref,pca_socpref_interact,UMAP1,UMAP2) %>% 
+  cor()
+
+```
+
+
+
+
+
+
+
+
+# hierarchikus klaszterek teszt:
+
+(nem jók, ki is kommenteltem)
+
+
+<!-- ```{r} -->
+
+<!-- # defined gower distance in order to get silhouette of the data -->
+<!-- #dist <- daisy(data_clustering, metric = "gower") -->
+
+<!-- dist <- daisy(data_clustering) -->
+<!-- cls <- hclust(dist) -->
+<!-- # plot(cls) -->
+
+
+<!-- dendagram <- as.dendrogram(cls) -->
+
+<!-- LAB = rep("", nobs(dendagram)) -->
+<!-- dendagram = dendextend::set(dendagram, "labels", LAB) -->
+
+
+<!-- cut_complete <- cutree(cls, k = 4) -->
+<!-- clustered_data$hierarch4 <- cut_complete -->
+
+<!-- cut_complete <- cutree(cls, k = 5) -->
+<!-- clustered_data$hierarch5 <- cut_complete -->
+
+<!-- cut_complete <- cutree(cls, k = 6) -->
+<!-- clustered_data$hierarch6 <- cut_complete -->
+
+<!-- cut_complete <- cutree(cls, k = 7) -->
+<!-- clustered_data$hierarch7 <- cut_complete -->
+
+
+<!-- rm(cls, dendagram, cut_complete) -->
+
+
+
+<!-- hier4_graph <- clustered_data %>% -->
+<!--   mutate(hierarch4 = as.factor(hierarch4)) %>% -->
+<!--   ggplot(aes(UMAP1,UMAP2, col = hierarch4))+ -->
+<!--   geom_point()+ -->
+<!--   theme(legend.position='none')+ -->
+<!--   labs(title = "Hierarchical Clustering (k=4)", -->
+<!--        col = NULL)+ -->
+<!--   xlab("UMAP1")+ -->
+<!--   ylab("UMAP2")+ -->
+<!--   theme_minimal()+ -->
+<!--   scale_colour_colorblind() -->
+
+<!-- hier5_graph <- clustered_data %>% -->
+<!--   mutate(hierarch5 = as.factor(hierarch5)) %>% -->
+<!--   ggplot(aes(UMAP1,UMAP2, col = hierarch5))+ -->
+<!--   geom_point()+ -->
+<!--   theme(legend.position='none')+ -->
+<!--   labs(title = "Hierarchical Clustering (k=4)", -->
+<!--        col = NULL)+ -->
+<!--   xlab("UMAP1")+ -->
+<!--   ylab("UMAP2")+ -->
+<!--   theme_minimal()+ -->
+<!--   scale_colour_colorblind() -->
+
+<!-- hier6_graph <- clustered_data %>% -->
+<!--   mutate(hierarch6 = as.factor(hierarch6)) %>% -->
+<!--   ggplot(aes(UMAP1,UMAP2, col = hierarch6))+ -->
+<!--   geom_point()+ -->
+<!--   theme(legend.position='none')+ -->
+<!--   labs(title = "Hierarchical Clustering (k=4)", -->
+<!--        col = NULL)+ -->
+<!--   xlab("UMAP1")+ -->
+<!--   ylab("UMAP2")+ -->
+<!--   theme_minimal()+ -->
+<!--   scale_colour_colorblind() -->
+
+<!-- hier7_graph <- clustered_data %>% -->
+<!--   mutate(hierarch7 = as.factor(hierarch7)) %>% -->
+<!--   ggplot(aes(UMAP1,UMAP2, col = hierarch7))+ -->
+<!--   geom_point()+ -->
+<!--   theme(legend.position='none')+ -->
+<!--   labs(title = "Hierarchical Clustering (k=4)", -->
+<!--        col = NULL)+ -->
+<!--   xlab("UMAP1")+ -->
+<!--   ylab("UMAP2")+ -->
+<!--   theme_minimal()+ -->
+<!--   scale_colour_colorblind() -->
+
+<!-- ggpubr::ggarrange(hier4_graph, hier5_graph, -->
+<!--                   hier6_graph, hier7_graph, -->
+<!--                   ncol = 2, nrow = 2) -->
+
+
+<!-- ``` -->
+
+
+
+
 
 
 
