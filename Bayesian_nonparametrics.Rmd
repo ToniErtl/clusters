@@ -1,0 +1,57 @@
+---
+title: "__Bayesian_nonparamterics"
+output: html_document
+date: "2023-08-17"
+---
+
+
+# Note: Run this code after running "___new_clustering.rmd"!
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(maotai) # DP-means algorithm
+```
+
+
+
+
+```{r run dp-means}
+
+library(maotai)
+dpmeans(data = data_clustering_num, 
+                lambda = ,
+                maxiter = 1000,
+                permute.order = TRUE)
+
+
+
+lab = c(rep(1,50),rep(2,50))
+
+
+## run dpmeans with several lambda values
+solA <- dpmeans(data_clustering_num, lambda= 5)$cluster
+solB <- dpmeans(data_clustering_num, lambda=10)$cluster
+solC <- dpmeans(data_clustering_num, lambda=20)$cluster
+
+## visualize the results
+
+# to visualize, we use UMAP
+
+X <- as.data.frame(UMAP1= umap_dimensions$UMAP1,
+                   UMAP2 = umap_dimensions$UMAP2)
+
+opar <- par(no.readonly=TRUE)
+par(mfrow=c(1,4), pty="s")
+plot(X,col=lab,  pch=19, cex=.8, main="True", xlab="x", ylab="y")
+plot(X,col=solA, pch=19, cex=.8, main="dpmeans lbd=5", xlab="x", ylab="y")
+plot(X,col=solB, pch=19, cex=.8, main="dpmeans lbd=10", xlab="x", ylab="y")
+plot(X,col=solC, pch=19, cex=.8, main="dpmeans lbd=20", xlab="x", ylab="y")
+par(opar)
+```
+
+
+
+
