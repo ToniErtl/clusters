@@ -1269,6 +1269,7 @@ nyers_adatok <- data %>%  dplyr::select(studid,
                                    pared_d3)
 
 
+
 data_analysis_clean$kmeans_cluster <- clustered_data$kmeans_cluster
 
 data_analysis_clean$kmed_cluster <- clustered_data$kmed_cluster
