@@ -16,7 +16,7 @@ library(tidyverse)
 library(ggplot2)
 library(ggthemes)
 
-library(rgl) # 3 dimensional plots
+#library(rgl) # 3 dimensional plots
 library(factoextra)
 library(crosstable) # crosstable function
 
@@ -273,16 +273,16 @@ data_analysis <- left_join(pca_data,additional_variables, by ="studid")
 ```
 
 
-```{r}
-
-plot3d(
-  x=data_analysis$pca_socpref_interact, y=data_analysis$pca_timepref, z=data_analysis$pca_riskpref,
-  #col = data$color,
-  #type = 's',
-  radius = .1,
-  xlab="Soc. Pref. Interact.", ylab="Time Pref.", zlab="Soc. Pref. No-Interact.")
-
-```
+<!--  ```{r} -->
+<!--  -->
+<!--  plot3d( -->
+<!--    x=data_analysis$pca_socpref_interact, y=data_analysis$pca_timepref, z=data_analysis$pca_riskpref, -->
+<!--    col = data$color, -->
+<!--    type = 's', -->
+<!--    radius = .1, -->
+<!--    xlab="Soc. Pref. Interact.", ylab="Time Pref.", zlab="Soc. Pref. No-Interact.") -->
+<!--  -->
+<!--  ``` -->
 
 
 
