@@ -910,7 +910,6 @@ umap_dimensions <- umap_fit$layout %>%
                   as.data.frame()%>%
                   rename(UMAP1="V1",
                          UMAP2="V2")
-
 clustered_data$UMAP1 <- umap_dimensions$UMAP1
 clustered_data$UMAP2 <- umap_dimensions$UMAP2
 
@@ -1146,6 +1145,16 @@ kproto_comp_table
 stargazer::stargazer(kproto_comp_table, summary = FALSE, rownames = FALSE)
 ```
 
+
+
+
+
+```{r write out dta}
+
+
+
+
+```
 
 
 
