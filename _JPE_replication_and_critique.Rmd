@@ -119,6 +119,14 @@ fviz_gap_stat(gap_stat)
 
 With Gower-distance:
 
+
+```{r}
+# Define Gower distance as "dist" object:
+
+dist <- daisy(mydata, metric = "gower")
+```
+
+
 ```{r}
 fviz_nbclust(mydata, FUN = pam, method = "silhouette", diss = dist)
 ```
@@ -154,6 +162,11 @@ fviz_nbclust(mydata, FUN = kmeans, method = "silhouette")
 ```
 
 
+k-means with gower-ditance
+
+```{r}
+fviz_nbclust(mydata, FUN = kmeans, diss = dist, method = "silhouette")
+```
 
 --------------------------------------
 
@@ -233,6 +246,9 @@ new_data <- merge(data_cont, data_categorical, by = "id") %>% select(-id)
 ```
 
 
+In order to use it for mixed data with Hierarchical Clustering, we need to use Gower-distance (categorical variables are treated different)
+
+
 
 #hierarchical clustering
 
@@ -260,7 +276,14 @@ fviz_nbclust(new_data, FUN = hcut, method = "silhouette", diss = dist)
 ```
 
 
-In order to use it for mixed data, we need to use Gower-distance (categorical variables are treated different)
+
+```{r}
+set.seed(123)
+
+gap_stat_hcut <- clusGap(mydata, FUN = hcut, diss = dist, nstart = 50, K.max = 15, 
+                    B = 100) 
+fviz_gap_stat(gap_stat_hcut)
+```
 
 
 
