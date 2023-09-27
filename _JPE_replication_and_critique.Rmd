@@ -17,7 +17,7 @@ library(tidyverse)
 library(ggplot2)
 library(ggthemes)
 
-library(rgl) # 3 dimensional plots
+#library(rgl) # 3 dimensional plots
 library(factoextra)
 library(crosstable) # crosstable function
 
@@ -84,8 +84,8 @@ for (k in 0:1) {
 			# 
 			# # Save clustering when NAs are not removed
 			# 
-			# save <- data.frame(id, pamx$clustering)
-			# save <- setNames(save, c("slno","mid","pam_narm"))
+			 save <- data.frame(id, pamx$clustering)
+			 save <- setNames(save, c("slno","mid","pam_narm"))
 			# 
 			# # Save results
 			# write.dta(save, "~/Data Archive/ConstructedData/cluster_pam_narm.dta")
