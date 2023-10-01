@@ -29,6 +29,8 @@ library(knitr)
 library(kableExtra)
 
 
+library(doParallel)
+
 
 # ---------------------
 
@@ -138,21 +140,59 @@ dist <- daisy(new_data, metric = "gower")
 #Check whether various distance measures matter
 #
 #----------
-doParallel::registerDoParallel(cores = 5)
+
+cores <- detectCores()-1
+doParallel::registerDoParallel(cores = cores)
 
 
-# Distance measure 1: eucledean
+# Distance measure 1: euclidean
 #silhouette:
-fviz_nbclust(mydata, FUN = pam, method = "silhouette")
+silhouette_euc <- fviz_nbclust(mydata, FUN = pam, method = "silhouette")
 #elbow method:
-fviz_nbclust(mydata, FUN = pam, method = "wss")
+elbow_euc <- fviz_nbclust(mydata, FUN = pam, method = "wss")
+
 #gap stat:
 set.seed(123)
-
-gap_stat_hcut <- clusGap(mydata, FUN = pam, diss=TRUE, nstart = 25, K.max = 15, 
+gap_stat_euc<- clusGap(mydata, FUN = pam, diss=TRUE, nstart = 25, K.max = 15, 
                          B = 50) 
-fviz_gap_stat(gap_stat_hcut)
+fviz_gap_stat(gap_stat_euc)
 
+
+# Distance measure 2: Gower
+
+
+silhouette_gow <- fviz_nbclust(mydata, FUN = pam, method = "silhouette", diss = dist)
+#elbow method:
+elbow_gow <- fviz_nbclust(mydata, FUN = pam, method = "wss", diss = dist)
+#gap stat:
+set.seed(123)
+gap_stat_gow <- clusGap(mydata, FUN = pam, diss=dist, nstart = 25, K.max = 15, 
+                         B = 50) 
+fviz_gap_stat(gap_stat_gow)
+
+
+
+
+
+########
+
+# Alternative: find the consensus:
+
+library(parameters)
+
+n_clust <- parameters::n_clusters(mydata,
+                      package = c("easystats", "NbClust", "mclust"),
+                      standardize = FALSE,
+                      include_factors = TRUE
+)
+n_clust
+
+n_clust_factors <- parameters::n_clusters(new_data,
+                                          package = c("easystats", "NbClust", "mclust"),
+                                          standardize = FALSE,
+                                          include_factors = TRUE
+)
+n_clust_factors
 
 
 
