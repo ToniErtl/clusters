@@ -33,7 +33,7 @@ library(kableExtra)
 
 #Register parallel computing:
 
-cores <- detectCores()-1
+cores <- parallel::detectCores()-1
 doParallel::registerDoParallel(cores = cores)
 
 # ---------------------
@@ -142,7 +142,7 @@ rm(data)
 
 
 # Define gower-distance
-dist <- daisy(new_data, metric = "gower")
+gower_dist <- daisy(new_data, metric = "gower")
 
 
 
@@ -174,6 +174,15 @@ n_clust_factors <- parameters::n_clusters(new_data,
 )
 n_clust_factors
 
+
+# n_clust_factors <- parameters::n_clusters(gower_dist,
+#                                           package = c("easystats", "NbClust", "mclust"),
+#                                           standardize = FALSE,
+#                                           include_factors = TRUE,
+#                                           nbclust_method = "pam"
+# )
+# n_clust_factors
+
 # for a number of results, the amount of groups is too large to construct meaningful groups, however, 
 # two or three groups are viable.
 
@@ -183,8 +192,8 @@ pamx2_mydata <- pam(mydata, 2)
 pamx3_mydata <- pam(mydata, 3)
 
 #with Gower-distance
-pamx2_new_data <- pam(mydata, 2, diss = dist)
-pamx3_new_data <- pam(mydata, 3, diss = dist)
+pamx2_new_data <- pam(gower_dist, 2)
+pamx3_new_data <- pam(gower_dist, 3)
 
 
 #--------------------------------------------------
@@ -242,13 +251,13 @@ library(clustMixType)
 
 set.seed(13456)
 
-proto_silh <- clustMixType::validation_kproto(method = "silhouette", data = new_data, k = 2:15, verbose = FALSE, nstart = 100) 
-proto_gamma <- clustMixType::validation_kproto(method = "gamma", data = new_data, k = 2:15, verbose = FALSE,nstart = 100) 
-proto_tau <- clustMixType::validation_kproto(method = "tau", data = new_data, k = 2:15, verbose = FALSE,nstart = 100) 
-proto_cindex <- clustMixType::validation_kproto(method = "cindex", data = new_data, k = 2:15, verbose = FALSE,nstart = 100) 
-proto_gplus <- clustMixType::validation_kproto(method = "gplus", data = new_data, k = 2:15, verbose = FALSE,nstart = 100) 
-proto_dunn <- clustMixType::validation_kproto(method = "dunn", data = new_data, k = 2:15, verbose = FALSE,nstart = 100) 
-proto_mcclain <- clustMixType::validation_kproto(method = "mcclain", data = new_data, k = 2:15, verbose = FALSE,nstart = 100) 
+proto_silh <- clustMixType::validation_kproto(method = "silhouette", data = new_data, k = 2:15, verbose = FALSE, nstart = 50) 
+proto_gamma <- clustMixType::validation_kproto(method = "gamma", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+proto_tau <- clustMixType::validation_kproto(method = "tau", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+proto_cindex <- clustMixType::validation_kproto(method = "cindex", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+proto_gplus <- clustMixType::validation_kproto(method = "gplus", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+proto_dunn <- clustMixType::validation_kproto(method = "dunn", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+proto_mcclain <- clustMixType::validation_kproto(method = "mcclain", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
 
 proto_silh$index_opt
 proto_gamma$index_opt
@@ -263,9 +272,9 @@ proto_mcclain$index_opt
 # note: all of the above tests used lambda = 3.17 as a result for optimization
 
 
-kpro2 <- kproto(new_data, k = 2, method = "gower", nstart = 1000, verbose = FALSE)
-kpro3 <- kproto(new_data, k = 3, method = "gower", nstart = 1000, verbose = FALSE)
-kpro4 <- kproto(new_data, k = 4, method = "gower", nstart = 1000, verbose = FALSE)
+kpro2 <- kproto(new_data, k = 2, method = "gower", nstart = 50, verbose = FALSE)
+kpro3 <- kproto(new_data, k = 3, method = "gower", nstart = 50, verbose = FALSE)
+kpro4 <- kproto(new_data, k = 4, method = "gower", nstart = 50, verbose = FALSE)
 
 
 
@@ -289,21 +298,182 @@ id <- id[complete.cases(data), ]
 data <- data[complete.cases(data), ]
 
 
+
+
+
+ADAT FRAMET ÁTNÉZNI MELYIKRE RAKJAM AZ UMAPOT
+
+
+
 clustered_data <- data
 rm(data, id)
 
 clustered_data$pamx2_mydata <- pamx2_mydata$clustering
 clustered_data$pamx3_mydata <- pamx3_mydata$clustering
   
-clustered_data$pamx2_newdata <- pamx2_new_data$clustering # with gower distance
-clustered_data$pamx2_newdata <- pamx3_new_data$clustering #with gower distance
+clustered_data$pamx2_newdata <- factor(pamx2_new_data$clustering) # with gower distance
+clustered_data$pamx3_newdata <- factor(pamx3_new_data$clustering) #with gower distance
 
-clustered_data$hclust <- hclust_2
-clustered_data$hclust <- hclust_3
+clustered_data$hclust2 <- hclust_2
+clustered_data$hclust3 <- hclust_3
 
 clustered_data$kpro2 <- kpro2$cluster
 clustered_data$kpro3 <- kpro3$cluster
 clustered_data$kpro4 <- kpro4$cluster
 
+
+#-------------
+# Data visualization
+#-------------
+#-------------------
+ 
+
+# First, define UMAP dimensions
+# We will use these
+
+library(umap)
+#convert all factor data into numeric encoding
+umap_data <- new_data 
+umap_data <- data.frame(lapply(umap_data, as.numeric))
+
+# fit umap
+set.seed(12345)
+umap_fit <- umap::umap(umap_data)
+
+# get UMAP dimensions into the dataset
+umap_dimensions <- umap_fit$layout %>%
+  as.data.frame()%>%
+  rename(UMAP1="V1",
+         UMAP2="V2")
+
+clustered_data$UMAP1 <- umap_dimensions$UMAP1
+clustered_data$UMAP2 <- umap_dimensions$UMAP2
+rm(umap_fit, umap_dimensions)
+
+
+
+# Create ggplots:
+
+hc_graph2 <- clustered_data %>% 
+  mutate(hclust_2 = as.factor(hclust_2)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = hclust_2))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "Hierarchical Clustering (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+hc_graph3 <- clustered_data %>% 
+  mutate(hclust_3 = as.factor(hclust_3)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = hclust_3))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "Hierarchical Clustering (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+# Chowdhury method:
+
+medoid_euc2 <- clustered_data %>% 
+  mutate(pamx2_mydata = as.factor(pamx2_mydata)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = pamx2_mydata))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid with eucledian distance (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+medoid_euc3 <- clustered_data %>% 
+  mutate(pamx3_mydata = as.factor(pamx3_mydata)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = pamx3_mydata))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid with eucledian distance (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+# K-medoid with gower distance
+
+medoid_gower2 <- clustered_data %>% 
+  mutate(pamx2_newdata = as.factor(pamx2_newdata)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = factor(pamx2_newdata)))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid with gower distance (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+medoid_gower3 <- clustered_data %>% 
+  mutate(pamx3_newdata = as.factor(pamx3_newdata)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = pamx3_newdata))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid with gower distance (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+
+
+# K-prototype
+
+kpro2_graph <- clustered_data %>% 
+  mutate(kpro2 = as.factor(kpro2)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kpro2))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype (k=2)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+kpro3_graph <- clustered_data %>% 
+  mutate(kpro3 = as.factor(kpro3)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kpro3))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype (k=3)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+kpro4_graph <- clustered_data %>% 
+  mutate(kpro4 = as.factor(kpro4)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = kpro4))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-prototype (k=4)",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()
+
+
+
+
+
+ggpubr::ggarrange(hc_graph2, medoid_euc2, medoid_gower2,  kpro2_graph,
+                  hc_graph3, medoid_euc3, medoid_gower3,  kpro3_graph ,ncol=4, nrow = 2)
+
+
+ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph)
+
+
+# new_data %>% select(patient_choicesOffspringMean,patient_choices_father,patient_choices_mother,
+#                             binswangerOffspringMean,binswanger_father,binswanger_mother) %>% 
+#   GGally::ggpairs()
 
 
