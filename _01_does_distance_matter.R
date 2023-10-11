@@ -59,13 +59,14 @@ data_cont <-data.frame(data$data.patient_choicesOffspringMean,
                        data$data.patient_choices_mother,
                        data$data.binswangerOffspringMean,
                        data$data.binswanger_father,
-                       data$data.binswanger_mother,
-                       data$data.spitefulOffspringMean) %>% 
+                       data$data.binswanger_mother
+) %>% 
   scale() 
 
 data_cont <- as.data.frame(data_cont)
 
-data_categorical <- data.frame(factor(data$data.spiteful_father),
+data_categorical <- data.frame(factor(data$data.spitefulOffspringMean),
+                               factor(data$data.spiteful_father),
                                factor(data$data.spiteful_mother),
                                factor(data$data.altruisticOffspringMean),
                                factor(data$data.altruistic_father),
@@ -76,7 +77,6 @@ data_categorical <- data.frame(factor(data$data.spiteful_father),
                                factor(data$data.selfishOffspringMean),
                                factor(data$data.selfish_father),
                                factor(data$data.selfish_mother))
-
 
 data_cont$id <- rownames(data_cont)
 data_categorical$id <- rownames(data_categorical)
@@ -181,14 +181,22 @@ fviz_gap_stat(gap_stat_gow)
 library(parameters)
 
 n_clust <- parameters::n_clusters(mydata,
-                      package = c("easystats", "NbClust", "mclust"),
+                      package = c("easystats", "NbClust", "mclust", "M3C"),
                       standardize = FALSE,
                       include_factors = TRUE
 )
 n_clust
 
+n_clust_gower <- parameters::n_clusters(new_data,
+                                          package = c("easystats", "NbClust", "mclust", "M3C"),
+                                          standardize = FALSE,
+                                          include_factors = TRUE
+)
+n_clust_gower
+
+
 n_clust_factors <- parameters::n_clusters(new_data,
-                                          package = c("easystats", "NbClust", "mclust"),
+                                          package = c("easystats", "NbClust", "mclust", "M3C"),
                                           standardize = FALSE,
                                           include_factors = TRUE
 )

@@ -67,13 +67,14 @@ data_cont <-data.frame(data$data.patient_choicesOffspringMean,
                        data$data.patient_choices_mother,
                        data$data.binswangerOffspringMean,
                        data$data.binswanger_father,
-                       data$data.binswanger_mother,
-                       data$data.spitefulOffspringMean) %>% 
+                       data$data.binswanger_mother
+                       ) %>% 
   scale() 
 
 data_cont <- as.data.frame(data_cont)
 
-data_categorical <- data.frame(factor(data$data.spiteful_father),
+data_categorical <- data.frame(factor(data$data.spitefulOffspringMean),
+                               factor(data$data.spiteful_father),
                                factor(data$data.spiteful_mother),
                                factor(data$data.altruisticOffspringMean),
                                factor(data$data.altruistic_father),
@@ -301,11 +302,11 @@ data <- data[complete.cases(data), ]
 
 
 
-ADAT FRAMET ÁTNÉZNI MELYIKRE RAKJAM AZ UMAPOT
+#ADAT FRAMET ÁTNÉZNI MELYIKRE RAKJAM AZ UMAPOT
 
 
 
-clustered_data <- data
+clustered_data <- new_data
 rm(data, id)
 
 clustered_data$pamx2_mydata <- pamx2_mydata$clustering
@@ -356,25 +357,29 @@ rm(umap_fit, umap_dimensions)
 
 hc_graph2 <- clustered_data %>% 
   mutate(hclust_2 = as.factor(hclust_2)) %>% 
-  ggplot(aes(UMAP1,UMAP2, col = hclust_2))+
+  ggplot(aes(UMAP1,UMAP2, col = hclust_2, alpha=0.9))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "Hierarchical Clustering (k=2)",
+  labs(title = "Hierarchical Clustering",
+       subtitle = "k=2",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
-  theme_minimal()
+  theme_minimal()+
+scale_color_colorblind()
 
 hc_graph3 <- clustered_data %>% 
   mutate(hclust_3 = as.factor(hclust_3)) %>% 
   ggplot(aes(UMAP1,UMAP2, col = hclust_3))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "Hierarchical Clustering (k=3)",
+  labs(title = "Hierarchical Clustering",
+       subtitle = "k=2",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
-  theme_minimal()
+  theme_minimal()+
+  scale_color_colorblind()
 
 # Chowdhury method:
 
@@ -383,22 +388,26 @@ medoid_euc2 <- clustered_data %>%
   ggplot(aes(UMAP1,UMAP2, col = pamx2_mydata))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "K-medoid with eucledian distance (k=2)",
+  labs(title = "K-medoid",
+       subtitle = "Eucledian distance, k=2",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
-  theme_minimal()
+  theme_minimal()+
+  scale_color_colorblind()
 
 medoid_euc3 <- clustered_data %>% 
   mutate(pamx3_mydata = as.factor(pamx3_mydata)) %>% 
   ggplot(aes(UMAP1,UMAP2, col = pamx3_mydata))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "K-medoid with eucledian distance (k=3)",
+  labs(title = "K-medoid",
+       subtitle = "Eucledian distance, k=3",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
-  theme_minimal()
+  theme_minimal()+
+  scale_color_colorblind()
 
 # K-medoid with gower distance
 
@@ -407,22 +416,26 @@ medoid_gower2 <- clustered_data %>%
   ggplot(aes(UMAP1,UMAP2, col = factor(pamx2_newdata)))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "K-medoid with gower distance (k=2)",
+  labs(title = "K-medoid",
+       subtitle = "Gower distance, k=3",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
-  theme_minimal()
+  theme_minimal()+
+  scale_color_colorblind()
 
 medoid_gower3 <- clustered_data %>% 
   mutate(pamx3_newdata = as.factor(pamx3_newdata)) %>% 
   ggplot(aes(UMAP1,UMAP2, col = pamx3_newdata))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "K-medoid with gower distance (k=3)",
+  labs(title = "K-medoid",
+       subtitle = "Gower distance, k=3",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
-  theme_minimal()
+  theme_minimal()+
+  scale_color_colorblind()
 
 
 
@@ -433,47 +446,133 @@ kpro2_graph <- clustered_data %>%
   ggplot(aes(UMAP1,UMAP2, col = kpro2))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "K-prototype (k=2)",
+  labs(title = "K-prototype",
+       subtitle = "k=2",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
-  theme_minimal()
+  theme_minimal()+
+  scale_color_colorblind()
 
 kpro3_graph <- clustered_data %>% 
   mutate(kpro3 = as.factor(kpro3)) %>% 
   ggplot(aes(UMAP1,UMAP2, col = kpro3))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "K-prototype (k=3)",
+  labs(title = "K-prototype",
+       subtitle = "k=3",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
-  theme_minimal()
+  theme_minimal()+
+  scale_color_colorblind()
 
 kpro4_graph <- clustered_data %>% 
   mutate(kpro4 = as.factor(kpro4)) %>% 
   ggplot(aes(UMAP1,UMAP2, col = kpro4))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "K-prototype (k=4)",
+  labs(title = "K-prototype",
+       subtitle = "k=4",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
-  theme_minimal()
+  theme_minimal()+
+  scale_color_colorblind()
 
 
 
 
 
-ggpubr::ggarrange(hc_graph2, medoid_euc2, medoid_gower2,  kpro2_graph,
-                  hc_graph3, medoid_euc3, medoid_gower3,  kpro3_graph ,ncol=4, nrow = 2)
+ggsave("./comment_clustering_plots/all_clusters.pdf",ggpubr::ggarrange(hc_graph2, medoid_euc2, medoid_gower2,  kpro2_graph,
+                  hc_graph3, medoid_euc3, medoid_gower3,  kpro3_graph ,ncol=4, nrow = 2), width = 12, height = 8)
 
 
-ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph)
+ggsave("./comment_clustering_plots/kproto_clusters.pdf",ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph, ncol =3),
+       width = 10, height = 4)
 
 
 # new_data %>% select(patient_choicesOffspringMean,patient_choices_father,patient_choices_mother,
 #                             binswangerOffspringMean,binswanger_father,binswanger_mother) %>% 
 #   GGally::ggpairs()
+
+
+
+
+
+
+
+# finally: datatable:
+
+crosstable_kpro2 <- clustered_data %>% 
+  select(-pamx2_mydata,
+         -pamx3_mydata,
+         -pamx2_newdata,
+         -pamx3_newdata,
+         -hclust2,
+         -hclust3,
+         -kpro3,
+         -kpro4,
+         -UMAP1,
+         -UMAP2)
+
+crosstable_kpro3 <- clustered_data %>% 
+  select(-pamx2_mydata,
+         -pamx3_mydata,
+         -pamx2_newdata,
+         -pamx3_newdata,
+         -hclust2,
+         -hclust3,
+         -kpro2,
+         -kpro4,
+         -UMAP1,
+         -UMAP2)
+
+
+
+for ( col in 1:ncol(crosstable_kpro2)){
+  colnames(crosstable_kpro2)[col] <-  sub("factor.data.", "", colnames(crosstable_kpro2)[col])
+}
+
+
+for ( col in 1:ncol(crosstable_kpro2)){
+  colnames(crosstable_kpro2)[col] <-  sub("data.", "", colnames(crosstable_kpro2)[col])
+  colnames(crosstable_kpro2)[col] <-  sub("Mean.", "Mean", colnames(crosstable_kpro2)[col])
+  colnames(crosstable_kpro2)[col] <-  sub("father.", "father", colnames(crosstable_kpro2)[col])
+  colnames(crosstable_kpro2)[col] <-  sub("mother.", "mother", colnames(crosstable_kpro2)[col])
+}
+
+for ( col in 1:ncol(crosstable_kpro3)){
+  colnames(crosstable_kpro3)[col] <-  sub("factor.data.", "", colnames(crosstable_kpro3)[col])
+}
+
+
+for ( col in 1:ncol(crosstable_kpro2)){
+  colnames(crosstable_kpro3)[col] <-  sub("data.", "", colnames(crosstable_kpro3)[col])
+  colnames(crosstable_kpro3)[col] <-  sub("Mean.", "Mean", colnames(crosstable_kpro3)[col])
+  colnames(crosstable_kpro3)[col] <-  sub("father.", "father", colnames(crosstable_kpro3)[col])
+  colnames(crosstable_kpro3)[col] <-  sub("mother.", "mother", colnames(crosstable_kpro3)[col])
+}
+
+
+
+#stargazer::stargazer(summary(arsenal::tableby(kpro2 ~ ., stat= c("mean"), data = crosstable_kpro2)), text = NULL, row.names = FALSE)
+
+
+summary((arsenal::tableby(kpro2 ~ ., stat= c("mean"), data = crosstable_kpro2, cat.test = "chisq", total = FALSE)), 
+        text = TRUE, latex = TRUE)
+
+
+
+summary((arsenal::tableby(kpro3 ~ ., stat= c("mean"), data = crosstable_kpro3, cat.test = "chisq", total = FALSE)), 
+        text = TRUE, latex = TRUE)
+
+
+summary((arsenal::tableby(kpro2 ~ ., stat= c("mean"), data = crosstable_kpro2, cat.test = "chisq", total = FALSE)), 
+        text = "latex", latex = TRUE)
+
+
+summary((arsenal::tableby(kpro3 ~ ., stat= c("mean"), data = crosstable_kpro3, cat.test = "chisq", total = FALSE)), 
+        text = "latex", latex = TRUE)
 
 
