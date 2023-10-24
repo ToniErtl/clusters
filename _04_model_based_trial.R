@@ -5,10 +5,26 @@
 library(T4cluster)
 # DP-means using gower-distance (does not work on m1 mac):
 
-T4cluster::dpmeans(dist, lambda = 0.1)
 
+# DOES NOT REALLY WORK IN OUR CASE
 
-
+# dpmeans_result <- T4cluster::dpmeans(mydata, lambda = 40)
+# table(dpmeans_result$cluster)
+# test_clustered_data <- clustered_data
+# test_clustered_data$dpmeans <- dpmeans_result$cluster
+# 
+# test_clustered_data %>% 
+#   mutate(dpmeans = as.factor(dpmeans)) %>% 
+#   ggplot(aes(UMAP1,UMAP2, col = dpmeans))+
+#   geom_point()+
+#   theme(legend.position='none')+
+#   labs(title = "Mclust -- model-based clustering",
+#        subtitle = "k=3",
+#        col = NULL)+
+#   xlab("UMAP1")+
+#   ylab("UMAP2")+
+#   theme_minimal()+
+#   scale_color_colorblind()
 
 #----------
 
