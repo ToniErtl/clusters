@@ -165,7 +165,7 @@ n_clust <- parameters::n_clusters(mydata,
                                   include_factors = TRUE,
                                   nbclust_method ="pam"
 )
-n_clust
+View(n_clust)
 
 n_clust_factors <- parameters::n_clusters(new_data,
                                           package = c("easystats", "NbClust", "mclust"),
@@ -189,6 +189,8 @@ n_clust_factors
 
 #orignal_results
 
+set.seed(12345)
+
 pamx2_mydata <- pam(mydata, 2)
 pamx3_mydata <- pam(mydata, 3)
 
@@ -205,14 +207,17 @@ pamx3_new_data <- pam(gower_dist, 3)
 #Let us do the same thing with hierarchical clustering;
 library(pvclust)
 
-n_clust_factors_hier <- parameters::n_clusters(new_data,
+n_clust_factors_hier_gower <- parameters::n_clusters(new_data,
                                           package = c("easystats", "NbClust", "mclust"),
                                           standardize = FALSE,
                                           include_factors = TRUE,
                                           nbclust_method = "hcut",
                                           distance_method = "gower"
 )
-n_clust_factors_hier
+n_clust_factors_hier_gower
+
+
+
 
 
 # out of the 7 methods, 3 says 1 cluster, 2 says 2 cluster and 1 says 3 cluster is the optimal.
@@ -236,6 +241,32 @@ leaflab = "none", horiz = F)
 
 hclust_2<- cutree(cls, k = 2)
 hclust_3<- cutree(cls, k = 3)
+
+#--------------------
+# Hiearchical - continous data
+
+
+n_clust_factors_hier_cont <- parameters::n_clusters(mydata,
+                                                     package = c("easystats", "NbClust", "mclust"),
+                                                     standardize = FALSE,
+                                                     include_factors = TRUE,
+                                                     nbclust_method = "hclust",
+                                                     distance_method = "euclidean"
+)
+View(n_clust_factors_hier_cont)
+
+
+dist_2 <- daisy(mydata, metric = "euclidean")
+cls2 <- hclust(dist_2)
+dendagram2<- as.dendrogram(cls2)
+LAB = rep("", nobs(dendagram2))
+dendagram2 = dendextend::set(dendagram2, "labels", LAB)
+
+plot(dendextend::color_branches(dendagram2, k = 3),
+     main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method",
+     leaflab = "none", horiz = F)
+
+
 
 
 
@@ -374,7 +405,7 @@ hc_graph3 <- clustered_data %>%
   geom_point()+
   theme(legend.position='none')+
   labs(title = "Hierarchical Clustering",
-       subtitle = "k=2",
+       subtitle = "k=3",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
