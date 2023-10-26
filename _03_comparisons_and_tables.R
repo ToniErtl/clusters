@@ -221,6 +221,89 @@ summary((arsenal::tableby(kpro4 ~ ., data=table_tech, stat= c("mean"), cat.test 
         text = TRUE, latex = TRUE)
 
 
+#---------------
+
+# Rand index
+
+library(fossil)
+
+rand_index_results <- matrix(nrow = 8, ncol = 8, NA) %>% as.data.frame()
+colnames(rand_index_results) <- c("Hclust2","Kmed_euc2","Kmed2","Kproto2",
+                                  "Hclust3","Kmed_euc3","Kmed3","Kproto3")
+rownames(rand_index_results) <- c("Hclust2","Kmed_euc2","Kmed2","Kproto2",
+                                  "Hclust3","Kmed_euc3","Kmed3","Kproto3")
+
+
+
+technical_data <- clustered_data %>% 
+  select(pamx2_mydata,
+         pamx3_mydata,
+         pamx2_newdata,
+         pamx3_newdata,
+         hclust2,
+         hclust3,
+         kpro2,
+         kpro3,
+         kpro4) %>% 
+  mutate(across(.cols=everything(),.fns=~as.numeric(.x)))
+
+
+rand_index_results["Hclust2","Hclust2"]<- fossil::rand.index(technical_data$hclust2,technical_data$hclust2)
+rand_index_results["Hclust2","Kmed_euc2"]<- fossil::rand.index(technical_data$hclust2,technical_data$pamx2_mydata)
+rand_index_results["Hclust2","Kmed2"]<- fossil::rand.index(technical_data$hclust2,technical_data$pamx2_newdata)
+rand_index_results["Hclust2","Kproto2"]<- fossil::rand.index(technical_data$hclust2,technical_data$kpro2)
+
+rand_index_results["Kmed_euc2","Hclust2"]<- fossil::rand.index(technical_data$pamx2_mydata,technical_data$hclust2)
+rand_index_results["Kmed_euc2","Kmed_euc2"]<- fossil::rand.index(technical_data$pamx2_mydata,technical_data$pamx2_mydata)
+rand_index_results["Kmed_euc2","Kmed2"]<- fossil::rand.index(technical_data$pamx2_mydata,technical_data$pamx2_newdata)
+rand_index_results["Kmed_euc2","Kproto2"]<- fossil::rand.index(technical_data$pamx2_mydata,technical_data$kpro2)
+
+rand_index_results["Kmed2","Hclust2"]<- fossil::rand.index(technical_data$pamx2_newdata,technical_data$hclust2)
+rand_index_results["Kmed2","Kmed_euc2"]<- fossil::rand.index(technical_data$pamx2_newdata,technical_data$pamx2_mydata)
+rand_index_results["Kmed2","Kmed2"]<- fossil::rand.index(technical_data$pamx2_newdata,technical_data$pamx2_newdata)
+rand_index_results["Kmed2","Kproto2"]<- fossil::rand.index(technical_data$pamx2_newdata,technical_data$kpro2)
+
+rand_index_results["Kproto2","Hclust2"]<- fossil::rand.index(technical_data$kpro2,technical_data$hclust2)
+rand_index_results["Kproto2","Kmed_euc2"]<- fossil::rand.index(technical_data$kpro2,technical_data$pamx2_mydata)
+rand_index_results["Kproto2","Kmed2"]<- fossil::rand.index(technical_data$kpro2,technical_data$pamx2_newdata)
+rand_index_results["Kproto2","Kproto2"]<- fossil::rand.index(technical_data$kpro2,technical_data$kpro2)
+
+rand_index_results["Hclust3","Hclust3"]<- fossil::rand.index(technical_data$hclust3,technical_data$hclust3)
+rand_index_results["Hclust3","Kmed_euc3"]<- fossil::rand.index(technical_data$hclust3,technical_data$pamx3_mydata)
+rand_index_results["Hclust3","Kmed3"]<- fossil::rand.index(technical_data$hclust3,technical_data$pamx3_newdata)
+rand_index_results["Hclust3","Kproto3"]<- fossil::rand.index(technical_data$hclust3,technical_data$kpro3)
+
+rand_index_results["Kmed_euc3","Hclust3"]<- fossil::rand.index(technical_data$pamx3_mydata,technical_data$hclust3)
+rand_index_results["Kmed_euc3","Kmed_euc3"]<- fossil::rand.index(technical_data$pamx3_mydata,technical_data$pamx3_mydata)
+rand_index_results["Kmed_euc3","Kmed3"]<- fossil::rand.index(technical_data$pamx3_mydata,technical_data$pamx3_newdata)
+rand_index_results["Kmed_euc3","Kproto3"]<- fossil::rand.index(technical_data$pamx3_mydata,technical_data$kpro3)
+
+rand_index_results["Kmed3","Hclust3"]<- fossil::rand.index(technical_data$pamx3_newdata,technical_data$hclust3)
+rand_index_results["Kmed3","Kmed_euc3"]<- fossil::rand.index(technical_data$pamx3_newdata,technical_data$pamx3_mydata)
+rand_index_results["Kmed3","Kmed3"]<- fossil::rand.index(technical_data$pamx3_newdata,technical_data$pamx3_newdata)
+rand_index_results["Kmed3","Kproto3"]<- fossil::rand.index(technical_data$pamx3_newdata,technical_data$kpro3)
+
+rand_index_results["Kproto3","Hclust3"]<- fossil::rand.index(technical_data$kpro3,technical_data$hclust3)
+rand_index_results["Kproto3","Kmed_euc3"]<- fossil::rand.index(technical_data$kpro3,technical_data$pamx3_mydata)
+rand_index_results["Kproto3","Kmed3"]<- fossil::rand.index(technical_data$kpro3,technical_data$pamx3_newdata)
+rand_index_results["Kproto3","Kproto3"]<- fossil::rand.index(technical_data$kpro3,technical_data$kpro3)
+
+# get latex output:
+stargazer::stargazer(as.matrix(rand_index_results), digits = 2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
