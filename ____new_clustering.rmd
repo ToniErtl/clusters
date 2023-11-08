@@ -224,7 +224,7 @@ pca_data$pca_socpref_nointeract <- pca_varimax$scores[,"RC3"]
 pca_data$pca_riskpref <- pca_varimax$scores[,"RC4"]
 
 
-data.frame(head(pca_varimax$loadings, n=nrow(pca_varimax$loadings))) %>%
+pca_graph <- data.frame(head(pca_varimax$loadings, n=nrow(pca_varimax$loadings))) %>%
   mutate(variable = rownames(.)) %>%
   gather(component,loading,-variable) %>%
   mutate(component = case_when(component == "RC3" ~ "Social Pref. without interactions",
@@ -240,7 +240,17 @@ data.frame(head(pca_varimax$loadings, n=nrow(pca_varimax$loadings))) %>%
       subtitle ="With 4 factors")+
   ylab(NULL)+
   xlab(NULL)+
-  theme_minimal()
+  theme_minimal()+
+  theme(text = element_text(size = 14))   
+
+pca_graph
+
+ggsave("./clustering_ourdata_plots/PCA.pdf",
+            pca_graph+
+            theme(text = element_text(size = 16)),
+       width = 12, height = 6)
+
+
 ```
 
 --------------------

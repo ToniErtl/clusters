@@ -388,11 +388,11 @@ rm(umap_fit, umap_dimensions)
 
 hc_graph2 <- clustered_data %>% 
   mutate(hclust_2 = as.factor(hclust_2)) %>% 
-  ggplot(aes(UMAP1,UMAP2, col = hclust_2, alpha=0.9))+
+  ggplot(aes(UMAP1,UMAP2, col = hclust_2))+
   geom_point()+
   theme(legend.position='none')+
   labs(title = "Hierarchical Clustering",
-       subtitle = "k=2",
+       subtitle = "Gower distance, k=2",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
@@ -405,7 +405,7 @@ hc_graph3 <- clustered_data %>%
   geom_point()+
   theme(legend.position='none')+
   labs(title = "Hierarchical Clustering",
-       subtitle = "k=3",
+       subtitle = "Gower distance, k=3",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
@@ -486,6 +486,10 @@ kpro2_graph <- clustered_data %>%
   scale_color_colorblind()
 
 kpro3_graph <- clustered_data %>% 
+  mutate(kpro3_tech=kpro3,
+         kpro3 = case_when(kpro3_tech == 1 ~ 1,
+                           kpro3_tech == 2 ~ 3,
+                           kpro3_tech == 3 ~ 2)) %>% 
   mutate(kpro3 = as.factor(kpro3)) %>% 
   ggplot(aes(UMAP1,UMAP2, col = kpro3))+
   geom_point()+
@@ -515,8 +519,9 @@ kpro4_graph <- clustered_data %>%
 
 
 
-ggsave("./comment_clustering_plots/all_clusters.pdf",ggpubr::ggarrange(hc_graph2, medoid_euc2, medoid_gower2,  kpro2_graph,
-                  hc_graph3, medoid_euc3, medoid_gower3,  kpro3_graph ,ncol=4, nrow = 2), width = 12, height = 8)
+ggsave("./comment_clustering_plots/all_clusters.pdf",ggpubr::ggarrange( medoid_euc2, medoid_gower2,  kpro2_graph, hc_graph2,
+                                                                        medoid_euc3,   medoid_gower3,  kpro3_graph ,hc_graph3,
+                                                                        ncol=4, nrow = 2), width = 12, height = 8)
 
 
 ggsave("./comment_clustering_plots/kproto_clusters.pdf",ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph, ncol =3),
