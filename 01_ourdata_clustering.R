@@ -99,6 +99,7 @@ data_scaled <- data_cleaned %>%  dplyr::select(-studid,-classid, -comp) %>%
   scale()
 data_scaled <- as.data.frame(data_scaled)
 
+data_scaled_id <- NULL
 data_scaled_id$studid <- data_cleaned %>% select(studid)
 
 # Basic Descriptives
@@ -111,7 +112,7 @@ data_nomiss <- data %>%
 
 stargazer::stargazer(data_nomiss,summary = TRUE, mean.sd = TRUE, median = TRUE,
                      iqr = TRUE)
-rm(data_nomiss)
+
 # --------------
 
 
@@ -187,10 +188,144 @@ View(n_clust_scaled_hclust_gower)
 # --------------------------------------------#
 
 
+#---------------
+# 1 ) hierarchical clustering
+#---------------
+data_clustering <- data_scaled
+data_clustering$comp <- data_cleaned$comp
+# create dataframe in which we can save the results of clusters
+
+clustered_data <- data_cleaned
+clustered_data$studid <- data_cleaned$studid
+
+# define Gower-distance:
+dist <- daisy(data_clustering, metric = "gower")
+
+cls <- hclust(dist)
+# plot(cls)
+
+dendagram <- as.dendrogram(cls)
+
+LAB = rep("", nobs(dendagram))
+dendagram = dendextend::set(dendagram, "labels", LAB)
+
+plot(dendextend::color_branches(dendagram, k = 2), main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
+
+cut_complete <- cutree(cls, k = 2)
+
+clustered_data$hierarch2 <- cut_complete
+#rm(cls, dendagram, cut_complete)
+
+
+# K = 3:
+cut_complete <- cutree(cls, k = 3)
+clustered_data$hierarch3 <- cut_complete
 
 
 
+# HCLUST --- euclidean distance, without the use of competition:
 
+data_clustering_num <- data_clustering %>% select(-comp)
+
+cls <- hclust(dist(data_clustering_num), method = "complete" )
+dendagram <- as.dendrogram(cls)
+LAB = rep("", nobs(dendagram))
+dendagram = dendextend::set(dendagram, "labels", LAB)
+
+# plot(dendextend::color_branches(dendagram, k = 2), main="Hierarchical Clustering with Gower-distance",
+#      sub ="Using k = 2 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
+
+cut_complete <- cutree(cls, k = 2)
+clustered_data$hierarch2_nocomp <- cut_complete
+
+
+# plot(dendextend::color_branches(dendagram, k = 3), main="Hierarchical Clustering with Gower-distance",
+#      sub ="Using k = 2 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
+cut_complete <- cutree(cls, k = 3)
+clustered_data$hierarch3_nocomp <- cut_complete
+
+rm(cls, dendagram, cut_complete)
+
+
+
+#---------------
+#---------------
+#---------------
+#---------------
+#---------------
+
+
+# K-medoid ; Gower-distance, k=2 and k = 3
+
+set.seed(5678)
+
+PAM_output2 <- cluster::pam(dist, k=2)
+clustered_data$kmedoid2 <- PAM_output2$clustering 
+
+PAM_output3 <- cluster::pam(dist, k=3)
+clustered_data$kmedoid3 <- PAM_output3$clustering 
+
+
+# K-medoid ; Euclidean distance, without competition k=2 and k = 3
+
+set.seed(5678)
+
+PAM_output2 <- cluster::pam(data_clustering, k=2)
+clustered_data$kmedoid2_nocomp <- PAM_output2$clustering 
+
+PAM_output3 <- cluster::pam(data_clustering, k=3)
+clustered_data$kmedoid3_nocomp <- PAM_output3$clustering 
+
+#---------
+#---------
+#---------
+#---------
+#---------
+#---------
+
+
+# K-prototype
+
+set.seed(123456)
+
+data_clustering$comp <- factor(data_clustering$comp)
+
+# for k = 2
+
+set.seed(123456)
+kpres2 <- clustMixType::kproto(data_clustering, k = 2, method = "gower", nstart = 1000, verbose = FALSE)
+clustered_data$kproto2 <- kpres2$cluster
+
+# for k = 3
+set.seed(123456)
+kpres3 <- clustMixType::kproto(data_clustering, k = 3, method = "gower", nstart = 1000, verbose = FALSE)
+clustered_data$kproto3 <- kpres3$cluster
+
+
+#------------------
+
+
+library(umap)
+
+#convert all factor data into numeric encoding
+umap_data <- data_clustering 
+umap_data <- data.frame(lapply(data_clustering, as.numeric))
+
+
+# fit umap
+set.seed(12345)
+umap_fit <- umap::umap(umap_data)
+
+# get UMAP dimensions into the dataset
+umap_dimensions <- umap_fit$layout %>%
+  as.data.frame()%>%
+  rename(UMAP1="V1",
+         UMAP2="V2")
+clustered_data$UMAP1 <- umap_dimensions$UMAP1
+clustered_data$UMAP2 <- umap_dimensions$UMAP2
+
+
+# DATA VISUALIZATION -- separate code?
 
 
 
