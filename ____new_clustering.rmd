@@ -674,7 +674,7 @@ dendagram <- as.dendrogram(cls)
 LAB = rep("", nobs(dendagram))
 dendagram = dendextend::set(dendagram, "labels", LAB)
 
-plot(dendextend::color_branches(dendagram, k = 3), main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
+plot(dendextend::color_branches(dendagram, k = 3), main="Hierarchical Clustering with Gower-distance", sub ="Using k = 3 based on scree-plot and silhouette method", leaflab = "none", horiz = F)
 
 cut_complete <- cutree(cls, k = 3)
 
@@ -1118,8 +1118,8 @@ kmed_graph3_nocomp <- clustered_data %>%
 
 
 
-ggpubr::ggarrange(hc_graph2_nocomp, kmed_graph2_nocomp, kproto_graph2, kmed_graph2,
-                  hc_graph3_nocomp, kmed_graph3_nocomp, kproto_graph3, kmed_graph3,
+ggpubr::ggarrange(hc_graph2, kmed_graph2_nocomp, kproto_graph2, kmed_graph2,
+                  hc_graph3, kmed_graph3_nocomp, kproto_graph3, kmed_graph3,
                   ncol = 4, nrow = 2)
 
 ggpubr::ggarrange(kmed_graph2_nocomp, kproto_graph2, kmed_graph2,

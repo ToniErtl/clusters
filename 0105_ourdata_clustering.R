@@ -221,6 +221,16 @@ clustered_data$hierarch2 <- cut_complete
 cut_complete <- cutree(cls, k = 3)
 clustered_data$hierarch3 <- cut_complete
 
+cut_complete <- cutree(cls, k = 4)
+clustered_data$hierarch4 <- cut_complete
+cut_complete <- cutree(cls, k = 5)
+clustered_data$hierarch5 <- cut_complete
+cut_complete <- cutree(cls, k = 6)
+clustered_data$hierarch6 <- cut_complete
+cut_complete <- cutree(cls, k = 7)
+clustered_data$hierarch7 <- cut_complete
+cut_complete <- cutree(cls, k = 8)
+clustered_data$hierarch8 <- cut_complete
 
 
 # HCLUST --- euclidean distance, without the use of competition:
@@ -244,6 +254,23 @@ clustered_data$hierarch2_nocomp <- cut_complete
 cut_complete <- cutree(cls, k = 3)
 clustered_data$hierarch3_nocomp <- cut_complete
 
+
+cut_complete <- cutree(cls, k = 4)
+clustered_data$hierarch4_nocomp <- cut_complete
+
+cut_complete <- cutree(cls, k = 5)
+clustered_data$hierarch5_nocomp <- cut_complete
+
+cut_complete <- cutree(cls, k = 6)
+clustered_data$hierarch6_nocomp <- cut_complete
+
+cut_complete <- cutree(cls, k = 7)
+clustered_data$hierarch7_nocomp <- cut_complete
+
+cut_complete <- cutree(cls, k = 8)
+clustered_data$hierarch8_nocomp <- cut_complete
+
+
 rm(cls, dendagram, cut_complete)
 
 
@@ -259,10 +286,10 @@ rm(cls, dendagram, cut_complete)
 
 set.seed(5678)
 
-PAM_output2 <- cluster::pam(dist, k=2, diss = TRUE)
+PAM_output2 <- cluster::pam(dist, k=2, diss = TRUE, medoids = "random", nstart = 1000)
 clustered_data$kmedoid2 <- PAM_output2$clustering 
 
-PAM_output3 <- cluster::pam(dist, k=3, diss = TRUE)
+PAM_output3 <- cluster::pam(dist, k=3, diss = TRUE, medoids = "random", nstart = 1000)
 clustered_data$kmedoid3 <- PAM_output3$clustering 
 
 
@@ -270,10 +297,10 @@ clustered_data$kmedoid3 <- PAM_output3$clustering
 
 set.seed(5678)
 
-PAM_output2 <- cluster::pam(data_clustering, k=2)
+PAM_output2 <- cluster::pam(data_clustering, k=2, medoids = "random", nstart = 1000)
 clustered_data$kmedoid2_nocomp <- PAM_output2$clustering 
 
-PAM_output3 <- cluster::pam(data_clustering, k=3)
+PAM_output3 <- cluster::pam(data_clustering, k=3, medoids = "random", nstart = 1000)
 clustered_data$kmedoid3_nocomp <- PAM_output3$clustering 
 
 #---------
@@ -325,7 +352,7 @@ clustered_data$UMAP1 <- umap_dimensions$UMAP1
 clustered_data$UMAP2 <- umap_dimensions$UMAP2
 
 
-# DATA VISUALIZATION -- separate code?
+# DATA VISUALIZATION -- separate code
 
 
 

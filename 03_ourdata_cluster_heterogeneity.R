@@ -1,6 +1,6 @@
 # Analysis -- are these groups heterogeneous?
 # run after running 01_ourdata_clustering.R
-
+library(ggpubr)
 library(tidyverse)
 
 # since the order of the observations did not change when creating the clustering 
@@ -76,7 +76,8 @@ print(result_df)
 
 #plot 
 
-ggplot(result_df, aes(x = reorder(term, estimate), y = estimate, ymin = conf.low, ymax = conf.high)) +
+confint_kproto <- ggplot(result_df, aes(x = reorder(term, estimate),
+                      y = estimate, ymin = conf.low, ymax = conf.high)) +
   geom_point(position = position_dodge(width = 0.5)) +
   geom_errorbar(position = position_dodge(width = 0.5), width = 0.2) +
   coord_flip() +
@@ -87,7 +88,7 @@ ggplot(result_df, aes(x = reorder(term, estimate), y = estimate, ymin = conf.low
   facet_wrap(~y_variable, scales = "free")+
   theme_minimal()
 
-
+ggsave("./clustering_ourdata_plots/confint_kproto.pdf",confint_kproto, width = 8, height =6)
 
 # model_list <- c(m1,"m2","m3","m4","m5","m6","m7")
 # 
@@ -106,8 +107,6 @@ ggplot(result_df, aes(x = reorder(term, estimate), y = estimate, ymin = conf.low
 table(data_hetero$schoolid, data_hetero$kproto3)
 
 
-
-
 # Alternative: use MatchIt
 
 # https://cran.r-project.org/web/packages/cobalt/vignettes/cobalt.html
@@ -117,8 +116,10 @@ library(WeightIt)
 library(cobalt)
 #Using WeightIt to generate weights with multinomial
 #logistic regression
+data_hetero2 <-  data_hetero %>% mutate(schoolid = as.factor(schoolid))
+
 W.out.mn <- WeightIt::weightit(kproto3 ~ pared_d3 + grade_math + grade_hun + grade_lit +
-                                 books8 + time_total + d_female+math+read, data = data_hetero,
+                                 books8 + time_total + d_female+math+read+schoolid, data = data_hetero2,
                                method = "energy",
                                use.mlogit = FALSE)
 
@@ -126,19 +127,47 @@ cobalt::bal.tab(W.out.mn, un = TRUE,
         disp = "means",
         which.treat = .all)
 
-cobalt::bal.plot(W.out.mn, "math", which = "both")
+txt_size = 16
 
-cobalt::bal.plot(W.out.mn, "read", which = "both")
+g1 <- cobalt::bal.plot(W.out.mn, "math", which = "unadjusted")+
+  labs(title="",x='Math',fill="Nr. of Cluster")+
+  theme( strip.background = element_blank(),
+         strip.text = element_blank(),
+         text = element_text(size = txt_size ) )
 
-cobalt::bal.plot(W.out.mn, "d_female", which = "both")
+g2 <- cobalt::bal.plot(W.out.mn, "read", which = "unadjusted")+
+  labs(title="",x='Read', fill="Nr. of Cluster") +
+  theme( strip.background = element_blank(),
+         strip.text = element_blank(),
+         text = element_text(size = txt_size ) )
 
-cobalt::bal.plot(W.out.mn, "schoolid", which = "both")
+g3 <- cobalt::bal.plot(W.out.mn, "d_female", which = "unadjusted")+
+  labs(title="",x='Female',fill="Nr. of Cluster") +
+  theme( strip.background = element_blank(),
+         strip.text = element_blank(),
+         text = element_text(size = txt_size ) )
 
+g4 <- cobalt::bal.plot(W.out.mn, "schoolid", which = "unadjusted")+
+  labs(title="",x='School ID',fill="Nr. of Cluster") +
+  theme( strip.background = element_blank(),
+         strip.text = element_blank(),
+         text = element_text(size = txt_size ) )
 
+g5 <- cobalt::bal.plot(W.out.mn, "time_total", which = "unadjusted")+
+  labs(title="",x='Time total',fill="Nr. of Cluster") +
+  theme( strip.background = element_blank(),
+         strip.text = element_blank(),
+         text = element_text(size = txt_size ) )
 
-
-
-
+g6 <- cobalt::bal.plot(W.out.mn, "pared_d3", which = "unadjusted")+
+  labs(title="",x='Parents have \nuniversity education',fill="Nr. of Cluster") +
+  theme( strip.background = element_blank(),
+         strip.text = element_blank(),
+         text = element_text(size = txt_size ) )  
+  
+  
+ggarrange(g1,g2,g3,g4, g5, g6, common.legend = T)+
+  labs(fill="Nr. of Cluster")
 
 
 
