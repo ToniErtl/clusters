@@ -170,6 +170,10 @@ ggarrange(g1,g2,g3,g4, g5, g6, common.legend = T)+
   labs(fill="Nr. of Cluster")
 
 
+# Analyse whether there's a significant difference between
+# proportions in schoolIDs; schools 2 and 6 are suspicious
+
+
 
 
 
