@@ -197,7 +197,7 @@ pamx3_mydata <- pam(mydata, 3)
 #with Gower-distance
 pamx2_new_data <- pam(gower_dist, 2)
 pamx3_new_data <- pam(gower_dist, 3)
-
+pamx4_new_data <- pam(gower_dist, 4)
 
 #--------------------------------------------------
 # Hierarchical clustering:
@@ -345,6 +345,8 @@ clustered_data$pamx3_mydata <- pamx3_mydata$clustering
   
 clustered_data$pamx2_newdata <- factor(pamx2_new_data$clustering) # with gower distance
 clustered_data$pamx3_newdata <- factor(pamx3_new_data$clustering) #with gower distance
+clustered_data$pamx4_newdata <- factor(pamx4_new_data$clustering)
+
 
 clustered_data$hclust2 <- hclust_2
 clustered_data$hclust3 <- hclust_3
@@ -448,7 +450,7 @@ medoid_gower2 <- clustered_data %>%
   geom_point()+
   theme(legend.position='none')+
   labs(title = "K-medoid",
-       subtitle = "Gower distance, k=3",
+       subtitle = "Gower distance, k=2",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
@@ -468,6 +470,18 @@ medoid_gower3 <- clustered_data %>%
   theme_minimal()+
   scale_color_colorblind()
 
+medoid_gower4 <- clustered_data %>% 
+  mutate(pamx4_newdata = as.factor(pamx4_newdata)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = pamx4_newdata))+
+  geom_point()+
+  theme(legend.position='none')+
+  labs(title = "K-medoid",
+       subtitle = "Gower distance, k=4",
+       col = NULL)+
+  xlab("UMAP1")+
+  ylab("UMAP2")+
+  theme_minimal()+
+  scale_color_colorblind()
 
 
 # K-prototype
@@ -526,6 +540,13 @@ ggsave("./comment_clustering_plots/all_clusters.pdf",ggpubr::ggarrange( medoid_e
 
 ggsave("./comment_clustering_plots/kproto_clusters.pdf",ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph, ncol =3),
        width = 10, height = 4)
+
+
+# Robustness: check k =2,3,4 for k-medoid as well (not in the article)
+ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph,
+                  medoid_gower2,medoid_gower3,medoid_gower4,
+                  ncol =3, nrow= 2)
+
 
 
 # new_data %>% select(patient_choicesOffspringMean,patient_choices_father,patient_choices_mother,
