@@ -95,8 +95,63 @@ data <- data.frame(data)
 # data <- merge(data_cont, data_categorical, by = "id") %>% select(-id)
 # rm(data_cont,data_categorical)
 
+data$kmed2_orig <- as.numeric(pamx_original$clustering)
 
 
+# For the PAM calculated in the original paper:
+
+for ( col in 1:ncol(data)){
+  colnames(data)[col] <-  sub("factor.data.", "", colnames(data)[col])
+}
+
+
+for ( col in 1:ncol(data)){
+  colnames(data)[col] <-  sub("data.", "", colnames(data)[col])
+  colnames(data)[col] <-  sub("Mean.", "Mean", colnames(data)[col])
+  colnames(data)[col] <-  sub("father.", "father", colnames(data)[col])
+  colnames(data)[col] <-  sub("mother.", "mother", colnames(data)[col])
+}
+
+
+summary((arsenal::tableby(kmed2_orig ~ ., stat= c("mean"), data = data, cat.test = "chisq", total = FALSE)), 
+        text = TRUE, latex = TRUE)
+
+
+
+
+# ------- part 2 of the table
+# pamx without missing values
+data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
+                 convert.factors = F)
+
+data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, 
+                   data$patient_choices_mother, data$binswangerOffspringMean, 
+                   data$binswanger_father, data$binswanger_mother, data$spitefulOffspringMean,
+                   data$spiteful_father, data$spiteful_mother, data$altruisticOffspringMean, 
+                   data$altruistic_father, data$altruistic_mother, data$egalitarianOffspringMean, 
+                   data$egalitarian_father, data$egalitarian_mother, data$selfishOffspringMean, 
+                   data$selfish_father, data$selfish_mother)
+
+
+data <- scale(data) %>% data.frame()
+
+data <- data %>% dplyr::filter(!is.na(data.binswangerOffspringMean))
+
+require(cluster)
+pamx_original <- pam(data, 2)
+
+data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
+                 convert.factors = F)
+
+data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, 
+                   data$patient_choices_mother, data$binswangerOffspringMean, 
+                   data$binswanger_father, data$binswanger_mother, data$spitefulOffspringMean,
+                   data$spiteful_father, data$spiteful_mother, data$altruisticOffspringMean, 
+                   data$altruistic_father, data$altruistic_mother, data$egalitarianOffspringMean, 
+                   data$egalitarian_father, data$egalitarian_mother, data$selfishOffspringMean, 
+                   data$selfish_father, data$selfish_mother)
+
+data <- data %>% dplyr::filter(!is.na(data.binswangerOffspringMean))
 
 
 
@@ -118,17 +173,9 @@ for ( col in 1:ncol(data)){
   colnames(data)[col] <-  sub("mother.", "mother", colnames(data)[col])
 }
 
-data$spitefulOffspringMean = factor(data$spitefulOffspringMean)
 
 summary((arsenal::tableby(kmed2_orig ~ ., stat= c("mean"), data = data, cat.test = "chisq", total = FALSE)), 
         text = TRUE, latex = TRUE)
-
-
-
-
-
-
-
 
 
 

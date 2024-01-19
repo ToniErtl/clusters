@@ -31,11 +31,22 @@ library(kableExtra)
 
 
 
+# Run code _02_clustering_methods for the clustering
 
-#Recreate their results:
+source("./_02_clustering_methods.R")
+
+#Separate data to continous and categorical variables
+
+#--------------
+# IMPORTANT!!!!
+#--------------
+#here, I removed the "scale" command, so we will get the non-standardized values 
+#for these tables 
+
 data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
                  convert.factors = F)
 
+id <- data.frame(data$slno, data$mid)
 data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, 
                    data$patient_choices_mother, data$binswangerOffspringMean, 
                    data$binswanger_father, data$binswanger_mother, data$spitefulOffspringMean,
@@ -44,24 +55,21 @@ data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_fathe
                    data$egalitarian_father, data$egalitarian_mother, data$selfishOffspringMean, 
                    data$selfish_father, data$selfish_mother)
 
+data <- data[complete.cases(data), ] # only pamx works with NAs
 
 
-
-data <- scale(data)
-# 2 clusters are optimal according to average silhouette width
-
-require(cluster)
-pamx_original <- pam(data, 2)
-
-data <- data.frame(data)
+#continous variables:
 data_cont <-data.frame(data$data.patient_choicesOffspringMean,
                        data$data.patient_choices_father,
                        data$data.patient_choices_mother,
                        data$data.binswangerOffspringMean,
                        data$data.binswanger_father,
                        data$data.binswanger_mother
-) %>% 
-  scale() 
+) 
+
+# HERE, I REMOVED THE SCALING!
+#%>% 
+#  scale() 
 
 data_cont <- as.data.frame(data_cont)
 
@@ -81,56 +89,26 @@ data_categorical <- data.frame(factor(data$data.spitefulOffspringMean),
 
 data_cont$id <- rownames(data_cont)
 data_categorical$id <- rownames(data_categorical)
-
+rm(data)
 data <- merge(data_cont, data_categorical, by = "id") %>% select(-id)
 rm(data_cont,data_categorical)
 
 
 
+# add our version of many specifications found in _02_clustering_methods.R
+data$pamx2_mydata <- clustered_data$pamx2_mydata
+data$pamx3_mydata <- clustered_data$pamx3_mydata  
+data$pamx2_newdata <- clustered_data$pamx2_newdata
+data$pamx3_newdata <- clustered_data$pamx3_newdata
+data$hclust2 <- clustered_data$hclust2
+data$hclust3 <- clustered_data$hclust3
+data$kpro2 <- clustered_data$kpro2
+data$kpro3 <- clustered_data$kpro3
+data$kpro4 <- clustered_data$kpro4
+data$UMAP1 <- clustered_data$UMAP1
+data$UMAP2 <- clustered_data$UMAP2
 
-
-
-
-data$kmed2_orig <- as.numeric(pamx_original$clustering)
-
-
-
-
-
-# PAM 2 - compare missing and non-missing results
-
-
-crosstable_pamx2_new<- clustered_data %>% 
-  select(#-pamx2_mydata,
-         -pamx3_mydata,
-         -pamx2_newdata,
-         -pamx3_newdata,
-         -hclust2,
-         -hclust3,
-         -kpro2,
-         -kpro3,
-         -kpro4,
-         -UMAP1,
-         -UMAP2)
-
-
-for ( col in 1:ncol(crosstable_pamx2_new)){
-  colnames(crosstable_pamx2_new)[col] <-  sub("factor.data.", "", colnames(crosstable_pamx2_new)[col])
-}
-
-
-for ( col in 1:ncol(crosstable_pamx2_new)){
-  colnames(crosstable_pamx2_new)[col] <-  sub("data.", "", colnames(crosstable_pamx2_new)[col])
-  colnames(crosstable_pamx2_new)[col] <-  sub("Mean.", "Mean", colnames(crosstable_pamx2_new)[col])
-  colnames(crosstable_pamx2_new)[col] <-  sub("father.", "father", colnames(crosstable_pamx2_new)[col])
-  colnames(crosstable_pamx2_new)[col] <-  sub("mother.", "mother", colnames(crosstable_pamx2_new)[col])
-}
-
-summary((arsenal::tableby(pamx2_mydata ~ ., stat= c("mean"), data = crosstable_pamx2_new, cat.test = "chisq", total = FALSE)), 
-        text = TRUE, latex = TRUE)
-
-
-# For the PAM calculated in this syntax:
+#dealing with some text issues...:
 
 for ( col in 1:ncol(data)){
   colnames(data)[col] <-  sub("factor.data.", "", colnames(data)[col])
@@ -144,48 +122,115 @@ for ( col in 1:ncol(data)){
   colnames(data)[col] <-  sub("mother.", "mother", colnames(data)[col])
 }
 
-data$spitefulOffspringMean = factor(data$spitefulOffspringMean)
 
-summary((arsenal::tableby(kmed2_orig ~ ., stat= c("mean"), data = data, cat.test = "chisq", total = FALSE)), 
+
+# PAM 2 - compare missing and non-missing results
+crosstable_pamx2_new<- data %>% 
+  select(#-pamx2_mydata,
+    -pamx3_mydata,
+    -pamx2_newdata,
+    -pamx3_newdata,
+    -hclust2,
+    -hclust3,
+    -kpro2,
+    -kpro3,
+    -kpro4,
+    -UMAP1,
+    -UMAP2)
+
+
+
+#---------
+#TABLE 2 : part1
+#---------
+
+summary((arsenal::tableby(pamx2_mydata ~ ., stat= c("mean"), data = crosstable_pamx2_new, cat.test = "chisq", total = FALSE)), 
+        text = TRUE, latex = TRUE)
+
+
+# For the PAM calculated in this syntax:
+
+
+data$spitefulOffspringMean = factor(data$spitefulOffspringMean)
+#---------
+#TABLE 2 : part2
+#---------
+table_tech<- data %>% 
+  select(-pamx2_mydata,
+    -pamx3_mydata,
+    #-pamx2_newdata,
+    -pamx3_newdata,
+    -hclust2,
+    -hclust3,
+    -kpro2,
+    -kpro3,
+    -kpro4,
+    -UMAP1,
+    -UMAP2)
+    #-kmed2_orig)
+
+
+summary((arsenal::tableby(pamx2_newdata ~ ., stat= c("mean"), data = table_tech, cat.test = "chisq", total = FALSE)), 
+        text = TRUE, latex = TRUE)
+
+
+# -------------------------#
+
+
+# Additional tables:
+
+
+#-----------
+#Table 4
+#----------- 
+
+
+
+table_tech<-  data %>% 
+  select(-pamx2_mydata,
+         -pamx3_mydata,
+         -pamx2_newdata,
+         -pamx3_newdata,
+         #-hclust2,
+         -hclust3,
+         -kpro2,
+         -kpro3,
+         -kpro4,
+         -UMAP1,
+         -UMAP2) 
+
+#Table 4 : part 1
+summary((arsenal::tableby(hclust2 ~ ., data=table_tech, stat= c("mean"), cat.test = "chisq", total = FALSE)), 
         text = TRUE, latex = TRUE)
 
 
 
 
-
-
-
-# UMAP cannot be used for missing data
-
-
-
-
-
-
-
-
-# Additional tables:
-
-table_tech<-  clustered_data %>% 
+table_tech<-  data %>% 
   select(-pamx2_mydata,
-    -pamx3_mydata,
-    -pamx2_newdata,
-    -pamx3_newdata,
-    -hclust2,
-    #-hclust3,
-    -kpro2,
-    -kpro3,
-    -kpro4,
-    -UMAP1,
-    -UMAP2) 
+         -pamx3_mydata,
+         -pamx2_newdata,
+         -pamx3_newdata,
+         -hclust2,
+         #-hclust3,
+         -kpro2,
+         -kpro3,
+         -kpro4,
+         -UMAP1,
+         -UMAP2) 
 
-
-
+#Table 4 : part 2
 summary((arsenal::tableby(hclust3 ~ ., data=table_tech, stat= c("mean"), cat.test = "chisq", total = FALSE)), 
-          text = TRUE, latex = TRUE)
+        text = TRUE, latex = TRUE)
+
+#--------------#
+#TABLE 5
+#--------------#
 
 
-table_tech<-  clustered_data %>% 
+
+
+table_tech<-  data %>% 
   select(-pamx2_mydata,
          -pamx3_mydata,
          -pamx2_newdata,
@@ -197,12 +242,53 @@ table_tech<-  clustered_data %>%
          -kpro4,
          -UMAP1,
          -UMAP2) 
+#table 5: part 1
 summary((arsenal::tableby(kpro2 ~ ., data=table_tech, stat= c("mean"), cat.test = "chisq", total = FALSE)), 
         text = TRUE, latex = TRUE)
 
 
+table_tech<-  data %>% 
+  select(-pamx2_mydata,
+         -pamx3_mydata,
+         -pamx2_newdata,
+         -pamx3_newdata,
+         -hclust2,
+         -hclust3,
+         -kpro2,
+         #-kpro3,
+         -kpro4,
+         -UMAP1,
+         -UMAP2)
+#table 5: part 1
+summary((arsenal::tableby(kpro3 ~ ., data=table_tech, stat= c("mean"), cat.test = "chisq", total = FALSE)), 
+        text = TRUE, latex = TRUE)
 
-table_tech<-  clustered_data %>% 
+
+
+
+
+#-------------
+#Table 6
+#------------
+
+
+table_tech<-  data %>% 
+  select(-pamx2_mydata,
+         -pamx3_mydata,
+         -pamx2_newdata,
+         -pamx3_newdata,
+         -hclust2,
+         -hclust3,
+         #-kpro2,
+         -kpro3,
+         -kpro4,
+         -UMAP1,
+         -UMAP2)
+#table 6: part 1
+summary((arsenal::tableby(kpro2 ~ ., data=table_tech, stat= c("mean"), cat.test = "chisq", total = FALSE)), 
+        text = TRUE, latex = TRUE)
+
+table_tech<-  data %>% 
   select(-pamx2_mydata,
          -pamx3_mydata,
          -pamx2_newdata,
@@ -213,10 +299,10 @@ table_tech<-  clustered_data %>%
          -kpro3,
          #-kpro4,
          -UMAP1,
-         -UMAP2) 
+         -UMAP2,)
 
 
-
+#table 6: part 2
 summary((arsenal::tableby(kpro4 ~ ., data=table_tech, stat= c("mean"), cat.test = "chisq", total = FALSE)), 
         text = TRUE, latex = TRUE)
 
@@ -235,7 +321,7 @@ rownames(rand_index_results) <- c("Hclust2","Kmed_euc2","Kmed2","Kproto2",
 
 
 
-technical_data <- clustered_data %>% 
+technical_data <- data %>% 
   select(pamx2_mydata,
          pamx3_mydata,
          pamx2_newdata,

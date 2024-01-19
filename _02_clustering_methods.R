@@ -38,6 +38,32 @@ doParallel::registerDoParallel(cores = cores)
 
 # ---------------------
 
+#----- First do the original clustering excercise with k = 2 and k =.3
+
+
+
+data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
+                 convert.factors = F)
+
+data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, 
+                   data$patient_choices_mother, data$binswangerOffspringMean, 
+                   data$binswanger_father, data$binswanger_mother, data$spitefulOffspringMean,
+                   data$spiteful_father, data$spiteful_mother, data$altruisticOffspringMean, 
+                   data$altruistic_father, data$altruistic_mother, data$egalitarianOffspringMean, 
+                   data$egalitarian_father, data$egalitarian_mother, data$selfishOffspringMean, 
+                   data$selfish_father, data$selfish_mother)
+
+
+data <- scale(data) %>% data.frame()
+
+data <- data %>% dplyr::filter(!is.na(data.binswangerOffspringMean))
+
+require(cluster)
+pamx_original2 <- pam(data, 2)
+pamx_original3 <- pam(data, 3)
+
+
+
 
 
 
@@ -142,6 +168,13 @@ mydata <- data
 rm(data)
 
 
+
+
+
+
+
+
+
 # Define gower-distance
 gower_dist <- daisy(new_data, metric = "gower")
 
@@ -187,14 +220,20 @@ n_clust_factors
 # for a number of results, the amount of groups is too large to construct meaningful groups, however, 
 # two or three groups are viable.
 
-#orignal_results
+
+
+
+#-------------------
+
+# orignal_results (using their version without missing values) 
 
 set.seed(12345)
 
 pamx2_mydata <- pam(mydata, 2)
 pamx3_mydata <- pam(mydata, 3)
 
-#with Gower-distance
+#with Gower-distance (and using the "correct" variables)
+set.seed(12345)
 pamx2_new_data <- pam(gower_dist, 2)
 pamx3_new_data <- pam(gower_dist, 3)
 pamx4_new_data <- pam(gower_dist, 4)
@@ -311,27 +350,6 @@ kpro4 <- kproto(new_data, k = 4, method = "gower", nstart = 50, verbose = FALSE)
 
 
 
-# save the clusters to the original dataset:
-
-data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
-                 convert.factors = F)
-
-#Data preparation including NAs
-
-id <- data.frame(data$slno, data$mid)
-data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, data$patient_choices_mother,
-                   data$binswangerOffspringMean, data$binswanger_father, data$binswanger_mother, 
-                   data$spitefulOffspringMean, data$spiteful_father, data$spiteful_mother,
-                   data$altruisticOffspringMean, data$altruistic_father, data$altruistic_mother,
-                   data$egalitarianOffspringMean, data$egalitarian_father, data$egalitarian_mother, 
-                   data$selfishOffspringMean, data$selfish_father, data$selfish_mother)
-# Data preparation when removing NAs
-id <- id[complete.cases(data), ]
-data <- data[complete.cases(data), ]
-
-
-
-
 
 #ADAT FRAMET ÁTNÉZNI MELYIKRE RAKJAM AZ UMAPOT
 
@@ -340,8 +358,10 @@ data <- data[complete.cases(data), ]
 clustered_data <- new_data
 rm(data, id)
 
-clustered_data$pamx2_mydata <- pamx2_mydata$clustering
-clustered_data$pamx3_mydata <- pamx3_mydata$clustering
+#results (for standardized values: for non-standardized, see end of the syntax)
+
+clustered_data$pamx2_mydata <- pamx_original2$clustering
+clustered_data$pamx3_mydata <- pamx_original3$clustering
   
 clustered_data$pamx2_newdata <- factor(pamx2_new_data$clustering) # with gower distance
 clustered_data$pamx3_newdata <- factor(pamx3_new_data$clustering) #with gower distance
@@ -625,11 +645,58 @@ summary((arsenal::tableby(kpro3 ~ ., stat= c("mean"), data = crosstable_kpro3, c
         text = TRUE, latex = TRUE)
 
 
-summary((arsenal::tableby(kpro2 ~ ., stat= c("mean"), data = crosstable_kpro2, cat.test = "chisq", total = FALSE)), 
-        text = "latex", latex = TRUE)
+# summary((arsenal::tableby(kpro2 ~ ., stat= c("mean"), data = crosstable_kpro2, cat.test = "chisq", total = FALSE)), 
+#         text = "latex", latex = TRUE)
+# 
+# 
+# summary((arsenal::tableby(kpro3 ~ ., stat= c("mean"), data = crosstable_kpro3, cat.test = "chisq", total = FALSE)), 
+#         text = "latex", latex = TRUE)
 
 
-summary((arsenal::tableby(kpro3 ~ ., stat= c("mean"), data = crosstable_kpro3, cat.test = "chisq", total = FALSE)), 
-        text = "latex", latex = TRUE)
+
+
+
+
+
+# ------ make the same tables with the non-standardized values:
+
+
+# save the clusters to the original dataset:
+
+data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
+                 convert.factors = F)
+
+#Data preparation including NAs
+
+id <- data.frame(data$slno, data$mid)
+data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, data$patient_choices_mother,
+                   data$binswangerOffspringMean, data$binswanger_father, data$binswanger_mother, 
+                   data$spitefulOffspringMean, data$spiteful_father, data$spiteful_mother,
+                   data$altruisticOffspringMean, data$altruistic_father, data$altruistic_mother,
+                   data$egalitarianOffspringMean, data$egalitarian_father, data$egalitarian_mother, 
+                   data$selfishOffspringMean, data$selfish_father, data$selfish_mother)
+
+# Data preparation when removing NAs
+id <- id[complete.cases(data), ]
+data_nonstd <- data[complete.cases(data), ]
+
+
+data_nonstd$pamx2_mydata <- pamx_original2$clustering
+data_nonstd$pamx3_mydata <- pamx_original3$clustering
+
+data_nonstd$pamx2_newdata <- factor(pamx2_new_data$clustering) # with gower distance
+data_nonstd$pamx3_newdata <- factor(pamx3_new_data$clustering) #with gower distance
+data_nonstd$pamx4_newdata <- factor(pamx4_new_data$clustering)
+
+
+data_nonstd$hclust2 <- hclust_2
+data_nonstd$hclust3 <- hclust_3
+
+data_nonstd$kpro2 <- kpro2$cluster
+data_nonstd$kpro3 <- kpro3$cluster
+data_nonstd$kpro4 <- kpro4$cluster
+
+
+
 
 
