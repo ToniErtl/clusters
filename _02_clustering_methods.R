@@ -198,7 +198,7 @@ n_clust <- parameters::n_clusters(mydata,
                                   include_factors = TRUE,
                                   nbclust_method ="pam"
 )
-View(n_clust)
+#View(n_clust)
 
 n_clust_factors <- parameters::n_clusters(new_data,
                                           package = c("easystats", "NbClust", "mclust"),
@@ -206,7 +206,7 @@ n_clust_factors <- parameters::n_clusters(new_data,
                                           include_factors = TRUE,
                                           nbclust_method = "pam"
 )
-n_clust_factors
+#n_clust_factors
 
 
 # n_clust_factors <- parameters::n_clusters(gower_dist,
@@ -292,7 +292,7 @@ n_clust_factors_hier_cont <- parameters::n_clusters(mydata,
                                                      nbclust_method = "hclust",
                                                      distance_method = "euclidean"
 )
-View(n_clust_factors_hier_cont)
+#View(n_clust_factors_hier_cont)
 
 
 dist_2 <- daisy(mydata, metric = "euclidean")
@@ -322,21 +322,23 @@ library(clustMixType)
 
 set.seed(13456)
 
-proto_silh <- clustMixType::validation_kproto(method = "silhouette", data = new_data, k = 2:15, verbose = FALSE, nstart = 50) 
-proto_gamma <- clustMixType::validation_kproto(method = "gamma", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
-proto_tau <- clustMixType::validation_kproto(method = "tau", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
-proto_cindex <- clustMixType::validation_kproto(method = "cindex", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
-proto_gplus <- clustMixType::validation_kproto(method = "gplus", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
-proto_dunn <- clustMixType::validation_kproto(method = "dunn", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
-proto_mcclain <- clustMixType::validation_kproto(method = "mcclain", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+# This calculation is really long, so I commented it out, as this code is required for other reproduction codes.
 
-proto_silh$index_opt
-proto_gamma$index_opt
-proto_tau$index_opt
-proto_cindex$index_opt
-proto_gplus$index_opt
-proto_dunn$index_opt
-proto_mcclain$index_opt
+# proto_silh <- clustMixType::validation_kproto(method = "silhouette", data = new_data, k = 2:15, verbose = FALSE, nstart = 50) 
+# proto_gamma <- clustMixType::validation_kproto(method = "gamma", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+# proto_tau <- clustMixType::validation_kproto(method = "tau", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+# proto_cindex <- clustMixType::validation_kproto(method = "cindex", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+# proto_gplus <- clustMixType::validation_kproto(method = "gplus", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+# proto_dunn <- clustMixType::validation_kproto(method = "dunn", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+# proto_mcclain <- clustMixType::validation_kproto(method = "mcclain", data = new_data, k = 2:15, verbose = FALSE,nstart = 50) 
+# 
+# proto_silh$index_opt
+# proto_gamma$index_opt
+# proto_tau$index_opt
+# proto_cindex$index_opt
+# proto_gplus$index_opt
+# proto_dunn$index_opt
+# proto_mcclain$index_opt
 
 # 2, 3 and 4 were all adequate with different criteriae
 
@@ -552,20 +554,20 @@ kpro4_graph <- clustered_data %>%
 
 
 
-
-ggsave("./comment_clustering_plots/all_clusters.pdf",ggpubr::ggarrange( medoid_euc2, medoid_gower2,  kpro2_graph, hc_graph2,
-                                                                        medoid_euc3,   medoid_gower3,  kpro3_graph ,hc_graph3,
-                                                                        ncol=4, nrow = 2), width = 12, height = 8)
-
-
-ggsave("./comment_clustering_plots/kproto_clusters.pdf",ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph, ncol =3),
-       width = 10, height = 4)
-
-
-# Robustness: check k =2,3,4 for k-medoid as well (not in the article)
-ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph,
-                  medoid_gower2,medoid_gower3,medoid_gower4,
-                  ncol =3, nrow= 2)
+# 
+# ggsave("./comment_clustering_plots/all_clusters.pdf",ggpubr::ggarrange( medoid_euc2, medoid_gower2,  kpro2_graph, hc_graph2,
+#                                                                         medoid_euc3,   medoid_gower3,  kpro3_graph ,hc_graph3,
+#                                                                         ncol=4, nrow = 2), width = 12, height = 8)
+# 
+# 
+# ggsave("./comment_clustering_plots/kproto_clusters.pdf",ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph, ncol =3),
+#        width = 10, height = 4)
+# 
+# 
+# # Robustness: check k =2,3,4 for k-medoid as well (not in the article)
+# ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph,
+#                   medoid_gower2,medoid_gower3,medoid_gower4,
+#                   ncol =3, nrow= 2)
 
 
 
@@ -657,44 +659,6 @@ summary((arsenal::tableby(kpro3 ~ ., stat= c("mean"), data = crosstable_kpro3, c
 
 
 
-
-# ------ make the same tables with the non-standardized values:
-
-
-# save the clusters to the original dataset:
-
-data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
-                 convert.factors = F)
-
-#Data preparation including NAs
-
-id <- data.frame(data$slno, data$mid)
-data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, data$patient_choices_mother,
-                   data$binswangerOffspringMean, data$binswanger_father, data$binswanger_mother, 
-                   data$spitefulOffspringMean, data$spiteful_father, data$spiteful_mother,
-                   data$altruisticOffspringMean, data$altruistic_father, data$altruistic_mother,
-                   data$egalitarianOffspringMean, data$egalitarian_father, data$egalitarian_mother, 
-                   data$selfishOffspringMean, data$selfish_father, data$selfish_mother)
-
-# Data preparation when removing NAs
-id <- id[complete.cases(data), ]
-data_nonstd <- data[complete.cases(data), ]
-
-
-data_nonstd$pamx2_mydata <- pamx_original2$clustering
-data_nonstd$pamx3_mydata <- pamx_original3$clustering
-
-data_nonstd$pamx2_newdata <- factor(pamx2_new_data$clustering) # with gower distance
-data_nonstd$pamx3_newdata <- factor(pamx3_new_data$clustering) #with gower distance
-data_nonstd$pamx4_newdata <- factor(pamx4_new_data$clustering)
-
-
-data_nonstd$hclust2 <- hclust_2
-data_nonstd$hclust3 <- hclust_3
-
-data_nonstd$kpro2 <- kpro2$cluster
-data_nonstd$kpro3 <- kpro3$cluster
-data_nonstd$kpro4 <- kpro4$cluster
 
 
 
