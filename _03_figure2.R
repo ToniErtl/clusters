@@ -1,7 +1,6 @@
 # Robustness check: make their results for k = 2, k=3, and k=4, and visualize it
 
 #clear data:
-rm(list=ls())
 
 
 # Load packages
@@ -276,7 +275,7 @@ ggsave("./comment_clustering_plots/orig_eucl_k234.pdf",ggpubr::ggarrange(fig1_or
 
 
 #----------#
-# TABLES
+# TABLES -- holnap ezt fogom és átrakom a _03_table_2_6_nonstandardized syntaxba és kész.
 #----------#
 
 
