@@ -1,4 +1,9 @@
 # Robustness check: make their results for k = 2, k=3, and k=4, and visualize it
+
+#clear data:
+rm(list=ls())
+
+
 # Load packages
 library(foreign)
 
@@ -215,7 +220,7 @@ umap_dimensions <- umap_fit$layout %>%
 
 figure_dist_table$UMAP1 <- umap_dimensions$UMAP1
 figure_dist_table$UMAP2 <- umap_dimensions$UMAP2
-rm(umap_fit, umap_dimensions)
+rm(umap_fit, umap_dimensions,new_data)
 
 
 
@@ -268,6 +273,45 @@ ggsave("./comment_clustering_plots/orig_eucl_k234.pdf",ggpubr::ggarrange(fig1_or
 
 
 
+
+
+#----------#
+# TABLES
+#----------#
+
+
+
+figure_dist_table2 <- figure_dist_table %>%
+  select(-original_eucl_clusters3,
+         -original_eucl_clusters4,
+         -UMAP1,
+         -UMAP2
+  )
+
+figure_dist_table3 <- figure_dist_table %>%
+  select(-original_eucl_clusters2,
+         -original_eucl_clusters4,
+         -UMAP1,
+         -UMAP2
+  )
+
+figure_dist_table4 <- figure_dist_table %>%
+  select(-original_eucl_clusters2,
+         -original_eucl_clusters3,
+         -UMAP1,
+         -UMAP2
+  )
+
+
+summary((arsenal::tableby(original_eucl_clusters2 ~ ., stat= c("mean"), data = figure_dist_table2, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+
+summary((arsenal::tableby(original_eucl_clusters3 ~ ., stat= c("mean"), data = figure_dist_table3, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+summary((arsenal::tableby(original_eucl_clusters4 ~ ., stat= c("mean"), data = figure_dist_table4, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
 
 
 

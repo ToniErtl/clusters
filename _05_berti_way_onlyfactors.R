@@ -63,7 +63,8 @@ data <- data[complete.cases(data), ]
 
 # make factors from all variables
 
-data_allfactors <- data %>% data.frame(lapply(data_allfactors, as.factor))
+data_allfactors <- data
+data_allfactors <- data.frame(lapply(data_allfactors, as.factor))
 
 
 
@@ -202,11 +203,23 @@ ggsave("./comment_clustering_plots/hierarch_allfactors234.pdf", ggpubr::ggarrang
 
 # finally: datatable:
 
+
+for ( col in 1:ncol(clustered_data)){
+  colnames(clustered_data)[col] <-  sub("factor.data.", "", colnames(clustered_data)[col])
+  colnames(clustered_data)[col] <-  sub("data.", "", colnames(clustered_data)[col])
+  colnames(clustered_data)[col] <-  sub("Mean.", "Mean", colnames(clustered_data)[col])
+  colnames(clustered_data)[col] <-  sub("father.", "father", colnames(clustered_data)[col])
+  colnames(clustered_data)[col] <-  sub("mother.", "mother", colnames(clustered_data)[col])
+}
+
+
+
 medoid_allfactors2_tab <- clustered_data %>%
   select(-pamx2_mydata,
          -pamx3_mydata,
          -pamx2_newdata,
          -pamx3_newdata,
+         -pamx4_newdata,
          -hclust2,
          -hclust3,
          -kpro2,
@@ -215,13 +228,16 @@ medoid_allfactors2_tab <- clustered_data %>%
          -UMAP1,
          -UMAP2,
          -pamx3_allfactors,
-         -pamx4_allfactors)
+         -pamx4_allfactors,
+         -hclust_2_gower_allfactor,
+         -hclust_3_gower_allfactor)
 
 medoid_allfactors3_tab <- clustered_data %>%
   select(-pamx2_mydata,
          -pamx3_mydata,
          -pamx2_newdata,
          -pamx3_newdata,
+         -pamx4_newdata,
          -hclust2,
          -hclust3,
          -kpro2,
@@ -230,13 +246,16 @@ medoid_allfactors3_tab <- clustered_data %>%
          -UMAP1,
          -UMAP2,
          -pamx2_allfactors,
-         -pamx4_allfactors)
+         -pamx4_allfactors,
+         -hclust_2_gower_allfactor,
+         -hclust_3_gower_allfactor)
 
 medoid_allfactors4_tab <- clustered_data %>%
   select(-pamx2_mydata,
          -pamx3_mydata,
          -pamx2_newdata,
          -pamx3_newdata,
+         -pamx4_newdata,
          -hclust2,
          -hclust3,
          -kpro2,
@@ -245,47 +264,9 @@ medoid_allfactors4_tab <- clustered_data %>%
          -UMAP1,
          -UMAP2,
          -pamx2_allfactors,
-         -pamx3_allfactors)
-
-
-
-for ( col in 1:ncol(medoid_allfactors2)){
-  colnames(medoid_allfactors2)[col] <-  sub("factor.data.", "", colnames(medoid_allfactors2)[col])
-}
-
-
-for ( col in 1:ncol(medoid_allfactors2)){
-  colnames(medoid_allfactors2)[col] <-  sub("data.", "", colnames(medoid_allfactors2)[col])
-  colnames(medoid_allfactors2)[col] <-  sub("Mean.", "Mean", colnames(medoid_allfactors2)[col])
-  colnames(medoid_allfactors2)[col] <-  sub("father.", "father", colnames(medoid_allfactors2)[col])
-  colnames(medoid_allfactors2)[col] <-  sub("mother.", "mother", colnames(medoid_allfactors2)[col])
-}
-
-for ( col in 1:ncol(medoid_allfactors3)){
-  colnames(medoid_allfactors3)[col] <-  sub("factor.data.", "", colnames(medoid_allfactors3)[col])
-}
-
-
-for ( col in 1:ncol(medoid_allfactors3)){
-  colnames(medoid_allfactors3)[col] <-  sub("data.", "", colnames(medoid_allfactors3)[col])
-  colnames(medoid_allfactors3)[col] <-  sub("Mean.", "Mean", colnames(medoid_allfactors3)[col])
-  colnames(medoid_allfactors3)[col] <-  sub("father.", "father", colnames(medoid_allfactors3)[col])
-  colnames(medoid_allfactors3)[col] <-  sub("mother.", "mother", colnames(medoid_allfactors3)[col])
-}
-
-
-for ( col in 1:ncol(medoid_allfactors4)){
-  colnames(medoid_allfactors4)[col] <-  sub("factor.data.", "", colnames(medoid_allfactors4)[col])
-}
-
-
-for ( col in 1:ncol(medoid_allfactors4)){
-  colnames(medoid_allfactors4)[col] <-  sub("data.", "", colnames(medoid_allfactors4)[col])
-  colnames(medoid_allfactors4)[col] <-  sub("Mean.", "Mean", colnames(medoid_allfactors4)[col])
-  colnames(medoid_allfactors4)[col] <-  sub("father.", "father", colnames(medoid_allfactors4)[col])
-  colnames(medoid_allfactors4)[col] <-  sub("mother.", "mother", colnames(medoid_allfactors4)[col])
-}
-
+         -pamx3_allfactors,
+         -hclust_2_gower_allfactor,
+         -hclust_3_gower_allfactor)
 
 
 
@@ -297,3 +278,62 @@ summary((arsenal::tableby(pamx3_allfactors ~ ., stat= c("mean"), data = medoid_a
 
 summary((arsenal::tableby(pamx4_allfactors ~ ., stat= c("mean"), data = medoid_allfactors4_tab, cat.test = "chisq", total = FALSE)),
         text = TRUE, latex = TRUE)
+
+
+
+
+#--------
+
+
+hierallfactors2_tab <- clustered_data %>%
+  select(-pamx2_mydata,
+         -pamx3_mydata,
+         -pamx2_newdata,
+         -pamx3_newdata,
+         -pamx4_newdata,
+         -hclust2,
+         -hclust3,
+         -kpro2,
+         -kpro3,
+         -kpro4,
+         -UMAP1,
+         -UMAP2,
+         -pamx2_allfactors,
+         -pamx3_allfactors,
+         -pamx4_allfactors,
+         -hclust_3_gower_allfactor)
+
+
+hierallfactors3_tab <- clustered_data %>%
+  select(-pamx2_mydata,
+         -pamx3_mydata,
+         -pamx2_newdata,
+         -pamx3_newdata,
+         -pamx4_newdata,
+         -hclust2,
+         -hclust3,
+         -kpro2,
+         -kpro3,
+         -kpro4,
+         -UMAP1,
+         -UMAP2,
+         -pamx2_allfactors,
+         -pamx3_allfactors,
+         -pamx4_allfactors,
+         -hclust_2_gower_allfactor
+         )
+
+
+
+summary((arsenal::tableby(hclust_2_gower_allfactor ~ ., stat= c("mean"), data = hierallfactors2_tab, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+summary((arsenal::tableby(hclust_3_gower_allfactor ~ ., stat= c("mean"), data = hierallfactors3_tab, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+
+
+
+
+
+
