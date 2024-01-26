@@ -30,12 +30,32 @@ library(kableExtra)
 
 
 
+# get the clustering results for _03_figure2.R
+
+
+source("./_03_figure2.R")
+
+
+# save the clustering results so they won't get overwritten by 
+original_eucl_clusters2 <- original_eucl_clusters2$clustering
+original_eucl_clusters3 <- original_eucl_clusters3$clustering
+original_eucl_clusters4 <- original_eucl_clusters4$clustering
+
+
+source("./_05_clusters_onlyfactors.R")
+
+pamx2_allfactors <- factor(pamx2_allfactors$clustering) 
+pamx3_allfactors <- factor(pamx3_allfactors$clustering) 
+pamx4_allfactors <- factor(pamx4_allfactors$clustering)
+
+hclust_2_gower_allfactor <- as.factor(hclust_2_gower_allfactor) 
+hclust_3_gower_allfactor <- as.factor(hclust_3_gower_allfactor)
+
 
 # Run code _02_clustering_methods for the clustering
-
 source("./_02_clustering_methods.R")
 
-#Separate data to continous and categorical variables
+#Separate data to continuous and categorical variables
 
 #--------------
 # IMPORTANT!!!!
@@ -181,7 +201,7 @@ summary((arsenal::tableby(pamx2_newdata ~ ., stat= c("mean"), data = table_tech,
 
 
 #-----------
-#Table 4
+#Table 4 - Hierarchical k = 2 + k = 3
 #----------- 
 
 
@@ -224,7 +244,7 @@ summary((arsenal::tableby(hclust3 ~ ., data=table_tech, stat= c("mean"), cat.tes
         text = TRUE, latex = TRUE)
 
 #--------------#
-#TABLE 5
+#TABLE 5 kproto k = 2 + k = 3
 #--------------#
 
 
@@ -268,7 +288,7 @@ summary((arsenal::tableby(kpro3 ~ ., data=table_tech, stat= c("mean"), cat.test 
 
 
 #-------------
-#Table 6
+#Table 6 kproto k = 2 + k = 4
 #------------
 
 
@@ -299,7 +319,7 @@ table_tech<-  data %>%
          -kpro3,
          #-kpro4,
          -UMAP1,
-         -UMAP2,)
+         -UMAP2)
 
 
 #table 6: part 2
@@ -307,6 +327,136 @@ summary((arsenal::tableby(kpro4 ~ ., data=table_tech, stat= c("mean"), cat.test 
         text = TRUE, latex = TRUE)
 
 
+
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+
+
+# Additionally, get the tables which correspond to the figures of "_03_figure2.R" & _05_clusters_onlyfactors
+
+
+
+
+
+# Table: Original eucl - k=2, k=3, k=4
+
+
+table_tech<- table_tech %>% select(-kpro4)
+table_tech$original_eucl_clusters2 <- original_eucl_clusters2
+summary((arsenal::tableby(original_eucl_clusters2 ~ ., stat= c("mean"), data = table_tech, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+table_tech<- table_tech %>% select(-original_eucl_clusters2)
+table_tech$original_eucl_clusters3 <- original_eucl_clusters3
+summary((arsenal::tableby(original_eucl_clusters3 ~ ., stat= c("mean"), data = table_tech, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+
+table_tech<- table_tech %>% select(-original_eucl_clusters3)
+table_tech$original_eucl_clusters4 <- original_eucl_clusters4
+summary((arsenal::tableby(original_eucl_clusters4 ~ ., stat= c("mean"), data = table_tech, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+
+
+
+#--------------------------------------------------------------------#
+
+# Table : kmedoid - gower allfactors k= 2 , k=3, k= 4
+
+
+table_tech<- table_tech %>% select(-original_eucl_clusters4)
+table_tech$pamx2_allfactors <- pamx2_allfactors
+summary((arsenal::tableby(pamx2_allfactors ~ ., stat= c("mean"), data = table_tech, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+table_tech<- table_tech %>% select(-pamx2_allfactors)
+table_tech$pamx3_allfactors <- pamx3_allfactors
+summary((arsenal::tableby(pamx3_allfactors ~ ., stat= c("mean"), data = table_tech, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+table_tech<- table_tech %>% select(-pamx3_allfactors)
+table_tech$pamx4_allfactors <- pamx4_allfactors
+summary((arsenal::tableby(pamx4_allfactors ~ ., stat= c("mean"), data = table_tech, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+
+
+#--------------------------------------------------------------------#
+
+# Table : hierarchical - gower allfactors k= 2 , k=3
+
+
+table_tech<- table_tech %>% select(-pamx4_allfactors)
+table_tech$hclust_2_gower_allfactor <- hclust_2_gower_allfactor
+summary((arsenal::tableby(hclust_2_gower_allfactor ~ ., stat= c("mean"), data = table_tech, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+
+table_tech<- table_tech %>% select(-hclust_2_gower_allfactor)
+table_tech$hclust_3_gower_allfactor <- hclust_3_gower_allfactor
+summary((arsenal::tableby(hclust_3_gower_allfactor ~ ., stat= c("mean"), data = table_tech, cat.test = "chisq", total = FALSE)),
+        text = TRUE, latex = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
 #---------------
 
 # Rand index

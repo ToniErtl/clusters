@@ -275,42 +275,9 @@ ggsave("./comment_clustering_plots/orig_eucl_k234.pdf",ggpubr::ggarrange(fig1_or
 
 
 #----------#
-# TABLES -- holnap ezt fogom és átrakom a _03_table_2_6_nonstandardized syntaxba és kész.
+# TABLES -- in _03_table_nonstandardized
 #----------#
 
-
-
-figure_dist_table2 <- figure_dist_table %>%
-  select(-original_eucl_clusters3,
-         -original_eucl_clusters4,
-         -UMAP1,
-         -UMAP2
-  )
-
-figure_dist_table3 <- figure_dist_table %>%
-  select(-original_eucl_clusters2,
-         -original_eucl_clusters4,
-         -UMAP1,
-         -UMAP2
-  )
-
-figure_dist_table4 <- figure_dist_table %>%
-  select(-original_eucl_clusters2,
-         -original_eucl_clusters3,
-         -UMAP1,
-         -UMAP2
-  )
-
-
-summary((arsenal::tableby(original_eucl_clusters2 ~ ., stat= c("mean"), data = figure_dist_table2, cat.test = "chisq", total = FALSE)),
-        text = TRUE, latex = TRUE)
-
-
-summary((arsenal::tableby(original_eucl_clusters3 ~ ., stat= c("mean"), data = figure_dist_table3, cat.test = "chisq", total = FALSE)),
-        text = TRUE, latex = TRUE)
-
-summary((arsenal::tableby(original_eucl_clusters4 ~ ., stat= c("mean"), data = figure_dist_table4, cat.test = "chisq", total = FALSE)),
-        text = TRUE, latex = TRUE)
 
 
 
