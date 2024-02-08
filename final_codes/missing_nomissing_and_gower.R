@@ -136,7 +136,6 @@ data <- data.frame(data)
 # 
 # data <- merge(data_cont, data_categorical, by = "id") %>% select(-id)
 # rm(data_cont,data_categorical)
-
 data$gower2 <- as.numeric(pamx2_missing$clustering)
 
 
