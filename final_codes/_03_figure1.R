@@ -1,8 +1,3 @@
-# Robustness check: make their results for k = 2, k=3, and k=4, and visualize it
-
-#clear data:
-
-
 # Load packages
 library(foreign)
 
@@ -35,6 +30,15 @@ library(kableExtra)
 cores <- parallel::detectCores()-1
 doParallel::registerDoParallel(cores = cores)
 
+# ---------------------
+
+
+#Based on _02_clustering.methods.R, we will separately make the PAM clustering.
+# slight difference: the data preparation is the same code for both cases, but 
+# for the first part, I do not do the refactoring of the variables and will
+# rescale all variables
+
+#-----
 
 
 
@@ -87,8 +91,7 @@ data_cont$id <- rownames(data_cont)
 data_categorical$id <- rownames(data_categorical)
 
 old_data <- merge(data_cont, data_categorical, by = "id") %>% select(-id) %>% 
-  scale() %>% 
-  data.frame() %>% 
+  scale() %>% data.frame() %>% 
   dplyr::filter(!is.na(data.data.binswangerOffspringMean))
 
 
@@ -101,19 +104,11 @@ rm(data_cont,data_categorical)
 # data <- data %>% dplyr::filter(!is.na(data.binswangerOffspringMean))
 
 require(cluster)
-original_eucl_clusters2<- pam(old_data, 2)
-original_eucl_clusters3<- pam(old_data, 3)
-original_eucl_clusters4<- pam(old_data, 4)
+original_eucl_clusters<- pam(old_data, 2)
 
-#-----
-#-----
-#-----
-#-----
-#-----
-#-----
-#-----
-
-#Data preparation for UMAP
+#-----------------------------
+# GOWER DISTANCE
+#-----------------------------
 
 
 data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
@@ -183,21 +178,24 @@ for ( col in 1:ncol(new_data)){
   colnames(new_data)[col] <-  sub("mother.", "mother", colnames(new_data)[col])
 }
 
+# Define gower-distance
+gower_dist <- daisy(new_data, metric = "gower")
 
+
+#with Gower-distance (and using the "correct" variables)
+set.seed(12345)
+new_gower_clusters <- pam(gower_dist, 2)
+
+
+figure_dist_table <- new_data
+
+figure_dist_table$original_eucl_clusters <- original_eucl_clusters$clustering
+figure_dist_table$new_gower_clusters <- new_gower_clusters$clustering
 
 #-------------
 # Data visualization
 #-------------
 #-------------------
-
-
-
-figure_dist_table <- new_data
-
-figure_dist_table$original_eucl_clusters2 <- original_eucl_clusters2$clustering
-figure_dist_table$original_eucl_clusters3 <- original_eucl_clusters3$clustering
-figure_dist_table$original_eucl_clusters4 <- original_eucl_clusters4$clustering
-
 
 
 # First, define UMAP dimensions
@@ -220,18 +218,18 @@ umap_dimensions <- umap_fit$layout %>%
 
 figure_dist_table$UMAP1 <- umap_dimensions$UMAP1
 figure_dist_table$UMAP2 <- umap_dimensions$UMAP2
-rm(umap_fit, umap_dimensions,new_data)
+rm(umap_fit, umap_dimensions)
 
 
 
 # Create ggplots:
 
-fig1_orig <- figure_dist_table %>% 
-  mutate(original_eucl_clusters2 = as.factor(original_eucl_clusters2)) %>% 
-  ggplot(aes(UMAP1,UMAP2, col = original_eucl_clusters2))+
+part1 <- figure_dist_table %>% 
+  mutate(original_eucl_clusters = as.factor(original_eucl_clusters)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = original_eucl_clusters))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "K-medoid based on the \noriginal method",
+  labs(title = "K-medoid based on the original method",
        subtitle = "Euclidean distance, k=2",
        col = NULL)+
   xlab("UMAP1")+
@@ -239,26 +237,13 @@ fig1_orig <- figure_dist_table %>%
   theme_minimal()+
   scale_color_colorblind()
 
-fig2_orig <- figure_dist_table %>% 
-  mutate(original_eucl_clusters3 = as.factor(original_eucl_clusters3)) %>% 
-  ggplot(aes(UMAP1,UMAP2, col = original_eucl_clusters3))+
+part2 <- figure_dist_table %>% 
+  mutate(new_gower_clusters = as.factor(new_gower_clusters)) %>% 
+  ggplot(aes(UMAP1,UMAP2, col = new_gower_clusters))+
   geom_point()+
   theme(legend.position='none')+
-  labs(title = "K-medoid based on the \noriginal method",
-       subtitle = "Euclidean distance, k=3",
-       col = NULL)+
-  xlab("UMAP1")+
-  ylab("UMAP2")+
-  theme_minimal()+
-  scale_color_colorblind()
-
-fig3_orig <- figure_dist_table %>% 
-  mutate(original_eucl_clusters4 = as.factor(original_eucl_clusters4)) %>% 
-  ggplot(aes(UMAP1,UMAP2, col = original_eucl_clusters4))+
-  geom_point()+
-  theme(legend.position='none')+
-  labs(title = "K-medoid based on the \noriginal method",
-       subtitle = "Euclidean distance, k=4",
+  labs(title = "K-medoid with binary variables",
+       subtitle = "Gower distance, k=2",
        col = NULL)+
   xlab("UMAP1")+
   ylab("UMAP2")+
@@ -266,18 +251,9 @@ fig3_orig <- figure_dist_table %>%
   scale_color_colorblind()
 
 
+ggsave("./comment_clustering_plots/orig_eucl_vs_gower.pdf",ggpubr::ggarrange(part1,part2,
+                                                                        ncol=2), width = 8, height = 4)
 
-ggsave("./comment_clustering_plots/orig_eucl_k234.pdf",ggpubr::ggarrange(fig1_orig,fig2_orig,fig3_orig,
-                                                                             ncol=3), width = 12, height = 4)
-
-
-
-
-
-
-#----------#
-# TABLES -- in _03_table_nonstandardized
-#----------#
 
 
 
