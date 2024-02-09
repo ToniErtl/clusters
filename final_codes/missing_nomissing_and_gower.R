@@ -166,3 +166,90 @@ summary((arsenal::tableby(gower4 ~ ., stat= c("mean"), data = data, cat.test = "
 
 
 
+
+
+# ------- ALTERNATIVE: USE KROTOTYPE WITH MISSINGS
+
+rm(list=ls())
+
+data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
+                 convert.factors = F)
+
+data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, 
+                   data$patient_choices_mother, data$binswangerOffspringMean, 
+                   data$binswanger_father, data$binswanger_mother, data$spitefulOffspringMean,
+                   data$spiteful_father, data$spiteful_mother, data$altruisticOffspringMean, 
+                   data$altruistic_father, data$altruistic_mother, data$egalitarianOffspringMean, 
+                   data$egalitarian_father, data$egalitarian_mother, data$selfishOffspringMean, 
+                   data$selfish_father, data$selfish_mother)
+
+
+
+data_cont <-data.frame(data$data.patient_choicesOffspringMean,
+                       data$data.patient_choices_father,
+                       data$data.patient_choices_mother,
+                       data$data.binswangerOffspringMean,
+                       data$data.binswanger_father,
+                       data$data.binswanger_mother
+) %>% 
+  scale() 
+
+data_cont <- as.data.frame(data_cont)
+
+data_categorical <- data.frame(factor(data$data.spitefulOffspringMean),
+                               factor(data$data.spiteful_father),
+                               factor(data$data.spiteful_mother),
+                               factor(data$data.altruisticOffspringMean),
+                               factor(data$data.altruistic_father),
+                               factor(data$data.altruistic_mother),
+                               factor(data$data.egalitarianOffspringMean),
+                               factor(data$data.egalitarian_father),
+                               factor(data$data.egalitarian_mother),
+                               factor(data$data.selfishOffspringMean),
+                               factor(data$data.selfish_father),
+                               factor(data$data.selfish_mother))
+
+
+data_cont$id <- rownames(data_cont)
+data_categorical$id <- rownames(data_categorical)
+
+new_data <- merge(data_cont, data_categorical, by = "id") %>% select(-id)
+
+library(clustMixType)
+set.seed(12345)
+kpro2 <- kproto(new_data, k = 2, method = "gower", nstart = 50, verbose = FALSE, na.rm="no")
+
+
+
+data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
+                 convert.factors = F)
+
+data <- data.frame(data$patient_choicesOffspringMean, data$patient_choices_father, 
+                   data$patient_choices_mother, data$binswangerOffspringMean, 
+                   data$binswanger_father, data$binswanger_mother, data$spitefulOffspringMean,
+                   data$spiteful_father, data$spiteful_mother, data$altruisticOffspringMean, 
+                   data$altruistic_father, data$altruistic_mother, data$egalitarianOffspringMean, 
+                   data$egalitarian_father, data$egalitarian_mother, data$selfishOffspringMean, 
+                   data$selfish_father, data$selfish_mother)
+
+data <- data.frame(data)
+data$kproto2 <- as.numeric(kpro2$cluster)
+
+
+# For the PAM calculated in the original paper:
+
+for ( col in 1:ncol(data)){
+  colnames(data)[col] <-  sub("factor.data.", "", colnames(data)[col])
+  colnames(data)[col] <-  sub("data.", "", colnames(data)[col])
+  colnames(data)[col] <-  sub("Mean.", "Mean", colnames(data)[col])
+  colnames(data)[col] <-  sub("father.", "father", colnames(data)[col])
+  colnames(data)[col] <-  sub("mother.", "mother", colnames(data)[col])
+}
+summary((arsenal::tableby(kproto2 ~ ., stat= c("mean"), data = data, cat.test = "chisq", total = FALSE)), 
+        text = TRUE, latex = TRUE)
+
+
+
+
+
+
