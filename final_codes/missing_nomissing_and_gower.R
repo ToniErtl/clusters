@@ -220,7 +220,6 @@ set.seed(12345)
 kpro2 <- kproto(new_data, k = 2, method = "gower", nstart = 50, verbose = FALSE, na.rm="no")
 
 
-
 data <- read.dta(".//chowdhurry data//Data Archive//ConstructedData//children_familyAggregate_stat12.dta",
                  convert.factors = F)
 
