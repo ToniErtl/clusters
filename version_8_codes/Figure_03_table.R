@@ -20,9 +20,6 @@ summary((arsenal::tableby(pamx3_newdata ~ ., stat= c("mean"), data = pamx3_newda
         text = TRUE, latex = TRUE)
 
 
-
-
-
 pamx4_newdata_tab <- pamx2_newdata_tab %>% select(-pamx2_newdata)
 pamx4_newdata_tab$pamx4_newdata <- clustered_data$pamx4_newdata
 
