@@ -1,8 +1,8 @@
 
 #Run the first clustering:
 
-source("./_02_clustering_methods.R")
-source("./_03_figure1.R")
+source("./codes/_02_clustering_methods.R")
+source("./codes/_03_figure1.R")
 
 # Load packages
 

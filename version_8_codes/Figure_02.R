@@ -1,4 +1,6 @@
 # Robustness check: make their results for k = 2, k=3, and k=4, and visualize it
+
+rm(list=ls())
 # Load packages
 library(foreign)
 

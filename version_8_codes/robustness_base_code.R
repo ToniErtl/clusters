@@ -1,3 +1,25 @@
+# This is the replication code for our comment on Chowdhurry et. al (2022)
+
+#clear all environment
+rm(list=ls())
+# Read libraries
+
+
+library(foreign)
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library(factoextra)
+library(crosstable) # crosstable function
+
+# Clustering methods:
+library(cluster)
+
+#Register parallel computing:
+cores <- parallel::detectCores()-1
+doParallel::registerDoParallel(cores = cores)
+
+# ---------------------
 #Second critique: how robust are the results to various clustering methods?
 
 
@@ -94,7 +116,7 @@ data_cont <-data.frame(data$data.patient_choicesOffspringMean,
                        data$data.binswangerOffspringMean,
                        data$data.binswanger_father,
                        data$data.binswanger_mother
-                       ) %>% 
+) %>% 
   scale() 
 
 data_cont <- as.data.frame(data_cont)
@@ -241,17 +263,17 @@ pamx4_new_data <- pam(gower_dist, 4)
 #--------------------------------------------------
 # Hierarchical clustering:
 
-
+# note: plots have been commented out from the 
 
 #Let us do the same thing with hierarchical clustering;
 library(pvclust)
 
 n_clust_factors_hier_gower <- parameters::n_clusters(new_data,
-                                          package = c("easystats", "NbClust", "mclust"),
-                                          standardize = FALSE,
-                                          include_factors = TRUE,
-                                          nbclust_method = "hcut",
-                                          distance_method = "gower"
+                                                     package = c("easystats", "NbClust", "mclust"),
+                                                     standardize = FALSE,
+                                                     include_factors = TRUE,
+                                                     nbclust_method = "hcut",
+                                                     distance_method = "gower"
 )
 n_clust_factors_hier_gower
 
@@ -269,13 +291,13 @@ dendagram<- as.dendrogram(cls)
 LAB = rep("", nobs(dendagram))
 dendagram = dendextend::set(dendagram, "labels", LAB)
 
-plot(dendextend::color_branches(dendagram, k = 2),
-     main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method",
-     leaflab = "none", horiz = F)
-
-plot(dendextend::color_branches(dendagram, k = 3), 
-main="Hierarchical Clustering with Gower-distance", sub ="Using k = 3 based on Gap-method",
-leaflab = "none", horiz = F)
+# plot(dendextend::color_branches(dendagram, k = 2),
+#      main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method",
+#      leaflab = "none", horiz = F)
+# 
+# plot(dendextend::color_branches(dendagram, k = 3), 
+#      main="Hierarchical Clustering with Gower-distance", sub ="Using k = 3 based on Gap-method",
+#      leaflab = "none", horiz = F)
 
 
 hclust_2<- cutree(cls, k = 2)
@@ -286,11 +308,11 @@ hclust_3<- cutree(cls, k = 3)
 
 
 n_clust_factors_hier_cont <- parameters::n_clusters(mydata,
-                                                     package = c("easystats", "NbClust", "mclust"),
-                                                     standardize = FALSE,
-                                                     include_factors = TRUE,
-                                                     nbclust_method = "hclust",
-                                                     distance_method = "euclidean"
+                                                    package = c("easystats", "NbClust", "mclust"),
+                                                    standardize = FALSE,
+                                                    include_factors = TRUE,
+                                                    nbclust_method = "hclust",
+                                                    distance_method = "euclidean"
 )
 #View(n_clust_factors_hier_cont)
 
@@ -301,16 +323,16 @@ dendagram2<- as.dendrogram(cls2)
 LAB = rep("", nobs(dendagram2))
 dendagram2 = dendextend::set(dendagram2, "labels", LAB)
 
-plot(dendextend::color_branches(dendagram2, k = 3),
-     main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method",
-     leaflab = "none", horiz = F)
+# plot(dendextend::color_branches(dendagram2, k = 3),
+#      main="Hierarchical Clustering with Gower-distance", sub ="Using k = 2 based on scree-plot and silhouette method",
+#      leaflab = "none", horiz = F)
 
 
 
 
 
 #-------------------------------
-#Finally, use k-prototype
+#Finally, as a test, use k-prototype; very similar results to k-medoid
 
 # K-prototype is closer to k-medoid, but it uses gower-distance for binary, and eucledian distance for
 #continous variables
@@ -321,7 +343,6 @@ plot(dendextend::color_branches(dendagram2, k = 3),
 library(clustMixType)
 
 set.seed(13456)
-
 # This calculation is really long, so I commented it out, as this code is required for other reproduction codes.
 
 # proto_silh <- clustMixType::validation_kproto(method = "silhouette", data = new_data, k = 2:15, verbose = FALSE, nstart = 50) 
@@ -364,7 +385,7 @@ rm(data, id)
 
 clustered_data$pamx2_mydata <- pamx_original2$clustering
 clustered_data$pamx3_mydata <- pamx_original3$clustering
-  
+
 clustered_data$pamx2_newdata <- factor(pamx2_new_data$clustering) # with gower distance
 clustered_data$pamx3_newdata <- factor(pamx3_new_data$clustering) #with gower distance
 clustered_data$pamx4_newdata <- factor(pamx4_new_data$clustering)
@@ -382,7 +403,7 @@ clustered_data$kpro4 <- kpro4$cluster
 # Data visualization
 #-------------
 #-------------------
- 
+
 
 # First, define UMAP dimensions
 # We will use these
@@ -421,7 +442,7 @@ hc_graph2 <- clustered_data %>%
   xlab("UMAP1")+
   ylab("UMAP2")+
   theme_minimal()+
-scale_color_colorblind()
+  scale_color_colorblind()
 
 hc_graph3 <- clustered_data %>% 
   mutate(hclust_3 = as.factor(hclust_3)) %>% 
@@ -550,116 +571,6 @@ kpro4_graph <- clustered_data %>%
   ylab("UMAP2")+
   theme_minimal()+
   scale_color_colorblind()
-
-
-
-
-# 
-# ggsave("./comment_clustering_plots/all_clusters.pdf",ggpubr::ggarrange( medoid_euc2, medoid_gower2,  kpro2_graph, hc_graph2,
-#                                                                         medoid_euc3,   medoid_gower3,  kpro3_graph ,hc_graph3,
-#                                                                         ncol=4, nrow = 2), width = 12, height = 8)
-# 
-# 
-# ggsave("./comment_clustering_plots/kproto_clusters.pdf",ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph, ncol =3),
-#        width = 10, height = 4)
-# 
-# 
-# # Robustness: check k =2,3,4 for k-medoid as well (not in the article)
-# ggpubr::ggarrange(kpro2_graph,kpro3_graph,kpro4_graph,
-#                   medoid_gower2,medoid_gower3,medoid_gower4,
-#                   ncol =3, nrow= 2)
-
-
-
-# new_data %>% select(patient_choicesOffspringMean,patient_choices_father,patient_choices_mother,
-#                             binswangerOffspringMean,binswanger_father,binswanger_mother) %>% 
-#   GGally::ggpairs()
-
-
-
-
-
-
-
-# finally: datatable:
-
-crosstable_kpro2 <- clustered_data %>% 
-  select(-pamx2_mydata,
-         -pamx3_mydata,
-         -pamx2_newdata,
-         -pamx3_newdata,
-         -hclust2,
-         -hclust3,
-         -kpro3,
-         -kpro4,
-         -UMAP1,
-         -UMAP2)
-
-crosstable_kpro3 <- clustered_data %>% 
-  select(-pamx2_mydata,
-         -pamx3_mydata,
-         -pamx2_newdata,
-         -pamx3_newdata,
-         -hclust2,
-         -hclust3,
-         -kpro2,
-         -kpro4,
-         -UMAP1,
-         -UMAP2)
-
-
-
-for ( col in 1:ncol(crosstable_kpro2)){
-  colnames(crosstable_kpro2)[col] <-  sub("factor.data.", "", colnames(crosstable_kpro2)[col])
-}
-
-
-for ( col in 1:ncol(crosstable_kpro2)){
-  colnames(crosstable_kpro2)[col] <-  sub("data.", "", colnames(crosstable_kpro2)[col])
-  colnames(crosstable_kpro2)[col] <-  sub("Mean.", "Mean", colnames(crosstable_kpro2)[col])
-  colnames(crosstable_kpro2)[col] <-  sub("father.", "father", colnames(crosstable_kpro2)[col])
-  colnames(crosstable_kpro2)[col] <-  sub("mother.", "mother", colnames(crosstable_kpro2)[col])
-}
-
-for ( col in 1:ncol(crosstable_kpro3)){
-  colnames(crosstable_kpro3)[col] <-  sub("factor.data.", "", colnames(crosstable_kpro3)[col])
-}
-
-
-for ( col in 1:ncol(crosstable_kpro2)){
-  colnames(crosstable_kpro3)[col] <-  sub("data.", "", colnames(crosstable_kpro3)[col])
-  colnames(crosstable_kpro3)[col] <-  sub("Mean.", "Mean", colnames(crosstable_kpro3)[col])
-  colnames(crosstable_kpro3)[col] <-  sub("father.", "father", colnames(crosstable_kpro3)[col])
-  colnames(crosstable_kpro3)[col] <-  sub("mother.", "mother", colnames(crosstable_kpro3)[col])
-}
-
-
-
-#stargazer::stargazer(summary(arsenal::tableby(kpro2 ~ ., stat= c("mean"), data = crosstable_kpro2)), text = NULL, row.names = FALSE)
-
-
-summary((arsenal::tableby(kpro2 ~ ., stat= c("mean"), data = crosstable_kpro2, cat.test = "chisq", total = FALSE)), 
-        text = TRUE, latex = TRUE)
-
-
-summary((arsenal::tableby(kpro3 ~ ., stat= c("mean"), data = crosstable_kpro3, cat.test = "chisq", total = FALSE)), 
-        text = TRUE, latex = TRUE)
-
-
-# summary((arsenal::tableby(kpro2 ~ ., stat= c("mean"), data = crosstable_kpro2, cat.test = "chisq", total = FALSE)), 
-#         text = "latex", latex = TRUE)
-# 
-# 
-# summary((arsenal::tableby(kpro3 ~ ., stat= c("mean"), data = crosstable_kpro3, cat.test = "chisq", total = FALSE)), 
-#         text = "latex", latex = TRUE)
-
-
-
-
-
-
-
-
 
 
 
