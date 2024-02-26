@@ -83,20 +83,20 @@ data_cont <-data.frame(data$patient_choicesOffspringMean,
 
 
 p1 <- ggplot(data, aes(x = patient_choicesOffspringMean)) +
-  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "midnightblue", color = "black") +
-  labs(title = "Children (Mean)", x = "Number of Patient Choices", y = "Density") +
+  geom_histogram( binwidth = 0.5, fill = "midnightblue", color = "black") +
+  labs(title = "Children (Mean)", x = "Number of Patient Choices", y = "Count") +
   theme_minimal()
 
 # Histogram for patient_choices_father
 p2 <- ggplot(data, aes(x = patient_choices_father)) +
-  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "midnightblue", color = "black") +
-  labs(title = "Father", x = "Number of Patient Choices", y = "Density") +
+  geom_histogram(binwidth = 1, fill = "midnightblue", color = "black") +
+  labs(title = "Father", x = "Number of Patient Choices", y = "") +
   theme_minimal()
 
 # Histogram for patient_choices_mother
 p3 <- ggplot(data, aes(x = patient_choices_mother)) +
-  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "midnightblue", color = "black") +
-  labs(title = "Mother", x = "Number of Patient Choices", y = "Density") +
+  geom_histogram( binwidth = 1, fill = "midnightblue", color = "black") +
+  labs(title = "Mother", x = "Number of Patient Choices", y = "") +
   theme_minimal()
 
 
@@ -106,19 +106,19 @@ ggsave("./comment_clustering_plots/hist_patience.pdf",
 
 
 p4 <- ggplot(data, aes(x = binswangerOffspringMean)) +
-  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "midnightblue", color = "black") +
-  labs(title = "Children (Mean)", x = "Gamble Number picked", y = "Density") +
+  geom_histogram(binwidth = 0.5, fill = "midnightblue", color = "black") +
+  labs(title = "Children (Mean)", x = "Gamble Number picked", y = "Count") +
   theme_minimal()
 
 p5 <- ggplot(data, aes(x = binswanger_father)) +
-  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "midnightblue", color = "black") +
-  labs(title = "Father", x = "Gamble Number picked", y = "Density") +
+  geom_histogram( binwidth = 1, fill = "midnightblue", color = "black") +
+  labs(title = "Father", x = "Gamble Number picked", y = "") +
   theme_minimal()
 
 
 p6 <- ggplot(data, aes(x = binswanger_mother)) +
-  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "midnightblue", color = "black") +
-  labs(title = "Mother", x = "Gamble Number picked", y = "Density") +
+  geom_histogram(binwidth = 1, fill = "midnightblue", color = "black") +
+  labs(title = "Mother", x = "Gamble Number picked", y = "") +
   theme_minimal()
 
 

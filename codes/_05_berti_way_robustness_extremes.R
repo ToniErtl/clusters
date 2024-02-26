@@ -1,7 +1,7 @@
 
 #Run the first clustering:
 
-source("./_02_clustering_methods.R")
+source("./codes/_02_clustering_methods.R")
 
 # Load packages
 
@@ -310,16 +310,12 @@ medoid_allfactors4_tab <- clustered_data %>%
 
 
 
-for ( col in 1:ncol(medoid_allfactors2)){
-  colnames(medoid_allfactors2)[col] <-  sub("factor.data.", "", colnames(medoid_allfactors2)[col])
-}
-
-
-for ( col in 1:ncol(medoid_allfactors2)){
-  colnames(medoid_allfactors2)[col] <-  sub("data.", "", colnames(medoid_allfactors2)[col])
-  colnames(medoid_allfactors2)[col] <-  sub("Mean.", "Mean", colnames(medoid_allfactors2)[col])
-  colnames(medoid_allfactors2)[col] <-  sub("father.", "father", colnames(medoid_allfactors2)[col])
-  colnames(medoid_allfactors2)[col] <-  sub("mother.", "mother", colnames(medoid_allfactors2)[col])
+for ( col in 1:ncol(medoid_allfactors2_tab)){
+  colnames(medoid_allfactors2_tab)[col] <-  sub("factor.data.", "", colnames(medoid_allfactors2_tab)[col])
+  colnames(medoid_allfactors2_tab)[col] <-  sub("data.", "", colnames(medoid_allfactors2_tab)[col])
+  colnames(medoid_allfactors2_tab)[col] <-  sub("Mean.", "Mean", colnames(medoid_allfactors2_tab)[col])
+  colnames(medoid_allfactors2_tab)[col] <-  sub("father.", "father", colnames(medoid_allfactors2_tab)[col])
+  colnames(medoid_allfactors2_tab)[col] <-  sub("mother.", "mother", colnames(medoid_allfactors2_tab)[col])
 }
 
 for ( col in 1:ncol(medoid_allfactors3)){
@@ -358,3 +354,15 @@ summary((arsenal::tableby(pamx3_allfactors ~ ., stat= c("mean"), data = medoid_a
 
 summary((arsenal::tableby(pamx4_allfactors ~ ., stat= c("mean"), data = medoid_allfactors4_tab, cat.test = "chisq", total = FALSE)),
         text = TRUE, latex = TRUE)
+
+
+
+
+source("./version_8_codes/data_table_nonstandardized.R")
+
+table_tech <- data
+table_tech$pamx2_allfactors <- clustered_data$pamx2_allfactors
+
+summary((arsenal::tableby(pamx2_allfactors ~ ., data=table_tech, stat= c("mean"), cat.test = "chisq", total = FALSE)), 
+        text = TRUE, latex = TRUE)
+
