@@ -1,14 +1,9 @@
 #Table 2 :
 rm(list=ls())
-#source("./version_8_codes/robustness_base_code.R")
 source("./version_8_codes/Figure_02.R")
 source("./version_8_codes/data_table_nonstandardized.R")
 
 
-
-# figure_dist_table$original_eucl_clusters2 <- original_eucl_clusters2$clustering
-# figure_dist_table$original_eucl_clusters3 <- original_eucl_clusters3$clustering
-# figure_dist_table$original_eucl_clusters4 <- original_eucl_clusters4$clustering
 
 
 table_tech <- data
