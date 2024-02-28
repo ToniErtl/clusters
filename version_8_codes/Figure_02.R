@@ -225,11 +225,11 @@ rm(umap_fit, umap_dimensions,new_data)
 # one modification: for k = 4 , just to be in line with k = 3, I switch clusters 3 for 4;
 #this is for only visualization purposes
 # 
-# figure_dist_table <- figure_dist_table %>%
-#   mutate(original_eucl_clusters4=case_when(original_eucl_clusters4==1~1,
-#                                            original_eucl_clusters4==2~2,
-#                                            original_eucl_clusters4==3~4,
-#                                            original_eucl_clusters4==4~3))
+figure_dist_table <- figure_dist_table %>%
+  mutate(original_eucl_clusters4=case_when(original_eucl_clusters4==1~1,
+                                           original_eucl_clusters4==2~2,
+                                           original_eucl_clusters4==3~4,
+                                           original_eucl_clusters4==4~3))
 
 # Create ggplots:
 

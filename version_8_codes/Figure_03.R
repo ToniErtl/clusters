@@ -10,11 +10,11 @@ source("./version_8_codes/robustness_base_code.R")
 # just to be in line with k = 3, I switch clusters 3 for 4;
 # this is for only visualization purposes
  
-# clustered_data <- clustered_data %>%
-#   mutate(pamx4_newdata=case_when(pamx4_newdata==1~1,
-#                                            pamx4_newdata==2~2,
-#                                            pamx4_newdata==3~4,
-#                                            pamx4_newdata==4~3))
+clustered_data <- clustered_data %>%
+  mutate(pamx4_newdata=case_when(pamx4_newdata==1~1,
+                                           pamx4_newdata==2~2,
+                                           pamx4_newdata==3~4,
+                                           pamx4_newdata==4~3))
 
 
 
