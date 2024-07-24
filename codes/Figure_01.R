@@ -1,8 +1,8 @@
 
 #Run the first clustering:
 
-source("./version_8_codes/robustness_base_code.R")
-source("./version_8_codes/technical_code.R")
+source("./codes/robustness_base_code.R")
+source("./codes/technical_code.R")
 
 # Load packages
 

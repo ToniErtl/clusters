@@ -374,8 +374,6 @@ kpro4 <- kproto(new_data, k = 4, method = "gower", nstart = 50, verbose = FALSE)
 
 
 
-#ADAT FRAMET ÁTNÉZNI MELYIKRE RAKJAM AZ UMAPOT
-
 
 
 clustered_data <- new_data

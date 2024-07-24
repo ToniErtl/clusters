@@ -1,7 +1,7 @@
 #Table 3 :
 rm(list=ls())
-source("./version_8_codes/Figure_03.R")
-source("./version_8_codes/data_table_nonstandardized.R")
+source("./codes/Figure_03.R")
+source("./codes/data_table_nonstandardized.R")
 
 
 

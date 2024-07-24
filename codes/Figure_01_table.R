@@ -1,8 +1,8 @@
 #Table 1 :
 rm(list=ls())
-source("./version_8_codes/robustness_base_code.R")
-source("./version_8_codes/Figure_01.R")
-source("./version_8_codes/data_table_nonstandardized.R")
+source("./codes/robustness_base_code.R")
+source("./codes/Figure_01.R")
+source("./codes/data_table_nonstandardized.R")
 
 
 table_tech <- data

@@ -1,3 +1,15 @@
+# This code was not used in the paper explicitly, 
+# only to check whether Euclidean or Gower distance would make a difference
+# in the original method.
+
+# The factors are encoded as binary variables here.
+
+
+
+
+
+
+
 # Load packages
 library(foreign)
 
@@ -27,12 +39,6 @@ cores <- parallel::detectCores()-1
 doParallel::registerDoParallel(cores = cores)
 
 # ---------------------
-
-
-#Based on _02_clustering.methods.R, we will separately make the PAM clustering.
-# slight difference: the data preparation is the same code for both cases, but 
-# for the first part, I do not do the refactoring of the variables and will
-# rescale all variables
 
 #-----
 

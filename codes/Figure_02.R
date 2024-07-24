@@ -282,10 +282,5 @@ ggsave("./comment_clustering_plots/orig_eucl_k234.pdf",ggpubr::ggarrange(fig1_or
 
 
 
-#----------#
-# TABLES -- in _03_table_nonstandardized
-#----------#
-
-
 
 

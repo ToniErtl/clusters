@@ -1,6 +1,6 @@
 rm(list= ls())
 
-source("./version_8_codes/robustness_base_code.R")
+source("./codes/robustness_base_code.R")
 
 #pamx2_newdata, pamx3_newdata, pamx4_newdata from robustness_base_code file
 
